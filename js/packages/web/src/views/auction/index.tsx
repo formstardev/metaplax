@@ -29,7 +29,6 @@ import { MintInfo } from '@solana/spl-token';
 import useWindowDimensions from '../../utils/layout';
 import { CheckOutlined } from '@ant-design/icons';
 import { useMemo } from 'react';
-import { ArtType } from '../../types';
 
 export const AuctionItem = ({
   item,
@@ -78,14 +77,7 @@ export const AuctionView = () => {
   const art = useArt(auction?.thumbnail.metadata.pubkey);
   const { ref, data } = useExtendedArt(auction?.thumbnail.metadata.pubkey);
   const creators = useCreators(auction);
-  let edition = ''
-  if (art.type === ArtType.NFT) {
-    edition = 'Unique';
-  } else if (art.type === ArtType.Master) {
-    edition = 'NFT 0';
-  } else if (art.type === ArtType.Print) {
-    edition = `${art.edition} of ${art.supply}`;
-  }
+  const edition = '1 of 1';
   const nftCount = auction?.items.flat().length;
   const winnerCount = auction?.items.length;
 
@@ -157,8 +149,7 @@ export const AuctionView = () => {
           <Row gutter={[50, 0]} style={{ marginRight: 'unset' }}>
             <Col>
               <h6>Edition</h6>
-              {!auction && <Skeleton title={{ width: "100%" }} paragraph={{ rows: 0 }} />}
-              {auction && <p className="auction-art-edition">{(auction?.items.length || 0) > 1 ? 'Multiple' : edition}</p>}
+              <p>{(auction?.items.length || 0) > 1 ? 'Multiple' : edition}</p>
             </Col>
 
             <Col>
