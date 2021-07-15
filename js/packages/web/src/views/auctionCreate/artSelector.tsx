@@ -98,10 +98,7 @@ export const ArtSelector = (props: ArtSelectorProps) => {
             Select the NFT that you want to sell copy/copies of.
           </p>
         </Row>
-        <Row
-          className="content-action"
-          style={{ overflowY: 'auto', height: '50vh' }}
-        >
+        <Row className="content-action" style={{ overflowY: 'auto', height: "50vh" }}>
           <Masonry
             breakpointCols={breakpointColumnsObj}
             className="my-masonry-grid"
