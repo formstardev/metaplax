@@ -109,23 +109,23 @@ export const AppBar = () => {
 
   return (
     <>
-      <div className="app-left app-bar-box">
+      <div className="app-left">
         <LogoLink />
         <div className="divider" />
         <Notifications />
         <MetaplexMenu />
       </div>
-      {!connected && <ConnectButton type="primary" />}
-      {connected && (
-        <div className="app-right app-bar-box">
+      <div className="app-right">
+        {!connected && <ConnectButton type="primary" />}
+        {connected && <>
           <UserActions />
           <CurrentUserBadge
             showBalance={false}
             showAddress={false}
             iconSize={24}
           />
-        </div>
-      )}
+        </>}
+      </div>
     </>
   );
 };
