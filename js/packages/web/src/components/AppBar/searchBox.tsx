@@ -4,11 +4,6 @@ import { Button } from 'antd';
 import './searchBox.less';
 
 export const SearchBox = ({}) => {
-  return (
-    <Button
-      className="search-btn"
-      shape="circle"
-      icon={<SearchOutlined />}
-    ></Button>
-  );
-};
+  return <Button className="search-btn" shape="circle" icon={<SearchOutlined />}>
+  </Button>;
+}
