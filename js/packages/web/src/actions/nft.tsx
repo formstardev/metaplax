@@ -83,7 +83,12 @@ export const mintNFT = async (
 
   const realFiles: File[] = [
     ...files,
-    new File([JSON.stringify(metadataContent)], 'metadata.json'),
+    new File(
+      [
+        JSON.stringify(metadataContent),
+      ],
+      'metadata.json',
+    ),
   ];
 
   const { instructions: pushInstructions, signers: pushSigners } =
