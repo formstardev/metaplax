@@ -1,13 +1,13 @@
 import { Keypair, PublicKey, TransactionInstruction } from '@solana/web3.js';
-import { deprecatedCreateReservationList } from '@oyster/common';
+import { createReservationList } from '@oyster/common';
 
 import { SafetyDepositInstructionConfig } from './addTokensToVault';
 import { AuctionManagerSettings, WinningConfigType } from '../models/metaplex';
 
 const BATCH_SIZE = 10;
-// This command batches out creating reservation lists for those tokens who are being sold in PrintingV1 mode.
+// This command batches out creating reservation lists for those tokens who are being sold in Printing mode.
 // Reservation lists are used to insure printing order among limited editions.
-export async function deprecatedCreateReservationListForTokens(
+export async function createReservationListForTokens(
   wallet: any,
   auctionManager: PublicKey,
   settings: AuctionManagerSettings,
@@ -30,10 +30,10 @@ export async function deprecatedCreateReservationListForTokens(
       .flat()
       .find(it => it.safetyDepositBoxIndex === i);
     if (
-      relevantConfig?.winningConfigType === WinningConfigType.PrintingV1 &&
+      relevantConfig?.winningConfigType === WinningConfigType.Printing &&
       safetyDeposit.draft.masterEdition
     )
-      await deprecatedCreateReservationList(
+      await createReservationList(
         safetyDeposit.draft.metadata.pubkey,
         safetyDeposit.draft.masterEdition.pubkey,
         auctionManager,

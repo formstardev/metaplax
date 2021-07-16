@@ -7,9 +7,9 @@ import {
 } from '@solana/web3.js';
 import { serialize } from 'borsh';
 
-import { SCHEMA, DeprecatedValidateParticipationArgs } from '.';
+import { SCHEMA, ValidateParticipationArgs } from '.';
 
-export async function deprecatedValidateParticipation(
+export async function validateParticipation(
   auctionManager: PublicKey,
   openEditionMetadata: PublicKey,
   openEditionMasterAccount: PublicKey,
@@ -24,7 +24,7 @@ export async function deprecatedValidateParticipation(
 ) {
   const PROGRAM_IDS = programIds();
 
-  const value = new DeprecatedValidateParticipationArgs();
+  const value = new ValidateParticipationArgs();
 
   const data = Buffer.from(serialize(SCHEMA, value));
 

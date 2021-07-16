@@ -28,6 +28,7 @@ $ cd metaplex
 $ cd js
 $ yarn install
 $ yarn bootstrap
+$ yarn build
 $ yarn start
 ```
 
@@ -41,7 +42,7 @@ bindings that allow interactivity.
 We have a few channels for contact:
 
 - [Discord](https://discord.gg/metaplex)
-- [@metaplex](https://twitter.com/metaplex) on Twitter
+- [@metaplexNFT](https://twitter.com/metaplexNFT) on Twitter
 - [GitHub Issues](https://github.com/metaplex-foundation/metaplex/issues)
 
 # Protocol

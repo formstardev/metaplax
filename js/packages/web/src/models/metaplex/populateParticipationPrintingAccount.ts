@@ -1,33 +1,33 @@
-import { getEdition, programIds, getMetadata } from '@oyster/common';
+import {
+  programIds,
+  VAULT_PREFIX,
+  getAuctionExtended,
+  findProgramAddress,
+} from '@oyster/common';
 import {
   PublicKey,
-  SystemProgram,
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
 import { serialize } from 'borsh';
 
-import {
-  getAuctionKeys,
-  getBidderKeys,
-  DeprecatedRedeemParticipationBidArgs,
-  SCHEMA,
-} from '.';
+import { PopulateParticipationPrintingAccountArgs, SCHEMA } from '.';
 
-export async function deprecatedRedeemParticipationBid(
+export async function populateParticipationPrintingAccount(
   vault: PublicKey,
+  auctionManager: PublicKey,
+  auction: PublicKey,
   safetyDepositTokenStore: PublicKey,
-  destination: PublicKey,
+  transientOneTimeAccount: PublicKey,
+  printingTokenAccount: PublicKey,
   safetyDeposit: PublicKey,
   fractionMint: PublicKey,
-  bidder: PublicKey,
+  printingMint: PublicKey,
+  oneTimePrintingAuthorizationMint: PublicKey,
+  masterEdition: PublicKey,
+  metadata: PublicKey,
   payer: PublicKey,
   instructions: TransactionInstruction[],
-  tokenMint: PublicKey,
-  participationPrintingAccount: PublicKey,
-  transferAuthority: PublicKey,
-  acceptPaymentAccount: PublicKey,
-  tokenPaymentAccount: PublicKey,
 ) {
   const PROGRAM_IDS = programIds();
   const store = PROGRAM_IDS.store;
@@ -35,32 +35,43 @@ export async function deprecatedRedeemParticipationBid(
     throw new Error('Store not initialized');
   }
 
-  const { auctionKey, auctionManagerKey } = await getAuctionKeys(vault);
+  const transferAuthority: PublicKey = (
+    await findProgramAddress(
+      [
+        Buffer.from(VAULT_PREFIX),
+        PROGRAM_IDS.vault.toBuffer(),
+        vault.toBuffer(),
+      ],
+      PROGRAM_IDS.vault,
+    )
+  )[0];
 
-  const { bidRedemption, bidMetadata } = await getBidderKeys(
-    auctionKey,
-    bidder,
-  );
-  const value = new DeprecatedRedeemParticipationBidArgs();
+  const value = new PopulateParticipationPrintingAccountArgs();
   const data = Buffer.from(serialize(SCHEMA, value));
+
   const keys = [
-    {
-      pubkey: auctionManagerKey,
-      isSigner: false,
-      isWritable: true,
-    },
     {
       pubkey: safetyDepositTokenStore,
       isSigner: false,
       isWritable: true,
     },
     {
-      pubkey: destination,
+      pubkey: transientOneTimeAccount,
       isSigner: false,
       isWritable: true,
     },
     {
-      pubkey: bidRedemption,
+      pubkey: printingTokenAccount,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: oneTimePrintingAuthorizationMint,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: printingMint,
       isSigner: false,
       isWritable: true,
     },
@@ -77,26 +88,24 @@ export async function deprecatedRedeemParticipationBid(
     {
       pubkey: fractionMint,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     {
-      pubkey: auctionKey,
+      pubkey: auction,
       isSigner: false,
       isWritable: false,
     },
     {
-      pubkey: bidMetadata,
+      pubkey: await getAuctionExtended({
+        auctionProgramId: PROGRAM_IDS.auction,
+        resource: vault,
+      }),
       isSigner: false,
       isWritable: false,
     },
     {
-      pubkey: bidder,
+      pubkey: auctionManager,
       isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: payer,
-      isSigner: true,
       isWritable: false,
     },
     {
@@ -120,7 +129,22 @@ export async function deprecatedRedeemParticipationBid(
       isWritable: false,
     },
     {
-      pubkey: SystemProgram.programId,
+      pubkey: masterEdition,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: metadata,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: transferAuthority,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: payer,
       isSigner: false,
       isWritable: false,
     },
@@ -128,26 +152,6 @@ export async function deprecatedRedeemParticipationBid(
       pubkey: SYSVAR_RENT_PUBKEY,
       isSigner: false,
       isWritable: false,
-    },
-    {
-      pubkey: transferAuthority,
-      isSigner: true,
-      isWritable: false,
-    },
-    {
-      pubkey: acceptPaymentAccount,
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: tokenPaymentAccount,
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: participationPrintingAccount,
-      isSigner: false,
-      isWritable: true,
     },
   ];
 

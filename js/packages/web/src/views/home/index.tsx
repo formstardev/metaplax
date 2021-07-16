@@ -14,26 +14,20 @@ import BN from 'bn.js';
 import { programIds, useConnection, useWallet } from '@oyster/common';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { WhitelistedCreator } from '../../models/metaplex';
+import { Banner } from '../../components/Banner';
+import { AppLayout } from '../../components/Layout';
 
 const { TabPane } = Tabs;
 
 const { Content } = Layout;
-
-export enum LiveAuctionViewState {
-  All = '0',
-  Participated = '1',
-  Ended = '2',
-};
-
 export const HomeView = () => {
   const auctions = useAuctions(AuctionViewState.Live);
   const auctionsEnded = useAuctions(AuctionViewState.Ended);
-  const [activeKey, setActiveKey] = useState(LiveAuctionViewState.All);
   const { isLoading, store } = useMeta();
   const [isInitalizingStore, setIsInitalizingStore] = useState(false);
   const connection = useConnection();
   const history = useHistory();
-  const { wallet, connect, connected } = useWallet();
+  const { wallet, connect } = useWallet();
   const breakpointColumnsObj = {
     default: 4,
     1100: 3,
@@ -52,15 +46,12 @@ export const HomeView = () => {
     [auctions],
   );
 
-  const liveAuctions = auctions
-  .sort((a, b) => a.auction.info.endedAt?.sub(b.auction.info.endedAt || new BN(0)).toNumber() || 0);
-
-  const items =
-    activeKey === LiveAuctionViewState.All
-      ? liveAuctions
-      : activeKey === LiveAuctionViewState.Participated ?
-      liveAuctions.concat(auctionsEnded).filter((m, idx) => m.myBidderMetadata?.info.bidderPubkey.toBase58() == wallet?.publicKey?.toBase58()):
-      auctionsEnded;
+  const liveAuctions = auctions.sort(
+    (a, b) =>
+      a.auction.info.endedAt
+        ?.sub(b.auction.info.endedAt || new BN(0))
+        .toNumber() || 0,
+  );
 
   const liveAuctionsView = (
     <Masonry
@@ -69,18 +60,14 @@ export const HomeView = () => {
       columnClassName="my-masonry-grid_column"
     >
       {!isLoading
-        ? items.map((m, idx) => {
-              if (m === heroAuction) {
-                return;
-              }
-
-              const id = m.auction.pubkey.toBase58();
-              return (
-                <Link to={`/auction/${id}`} key={idx}>
-                  <AuctionRenderCard key={id} auctionView={m} />
-                </Link>
-              );
-            })
+        ? liveAuctions.map((m, idx) => {
+            const id = m.auction.pubkey.toBase58();
+            return (
+              <Link to={`/auction/${id}`} key={idx}>
+                <AuctionRenderCard key={id} auctionView={m} />
+              </Link>
+            );
+          })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -92,6 +79,7 @@ export const HomeView = () => {
     >
       {!isLoading
         ? auctionsEnded
+            .filter((m, idx) => idx < 10)
             .map((m, idx) => {
               if (m === heroAuction) {
                 return;
@@ -111,66 +99,88 @@ export const HomeView = () => {
   const CURRENT_STORE = programIds().store;
 
   return (
-    <Layout style={{ margin: 0, marginTop: 30, alignItems: 'center' }}>
-      {!store && !isLoading && <>
-        {!CURRENT_STORE && <p>Store has not been configured please set <em>REACT_APP_STORE_OWNER_ADDRESS_ADDRESS</em> to admin wallet inside <em>packages/web/.env</em> and restart yarn</p>}
-        {CURRENT_STORE && !wallet?.publicKey && <p><Button type="primary" className="app-btn" onClick={connect}>Connect</Button> to configure store.</p>}
-        {CURRENT_STORE && wallet?.publicKey && <>
-          <p>Initializing store will allow you to control list of creators.</p>
+    <AppLayout addBannerBg={true} src={'/main-banner.svg'}>
+      <Layout style={{ margin: 0, alignItems: 'center' }}>
+        {!store && !isLoading && (
+          <>
+            {!CURRENT_STORE && (
+              <p>
+                Store has not been configured please set{' '}
+                <em>REACT_APP_STORE_OWNER_ADDRESS_ADDRESS</em> to admin wallet
+                inside <em>packages/web/.env</em> and restart yarn
+              </p>
+            )}
+            {CURRENT_STORE && !wallet?.publicKey && (
+              <p>
+                <Button type="primary" className="app-btn" onClick={connect}>
+                  Connect
+                </Button>{' '}
+                to configure store.
+              </p>
+            )}
+            {CURRENT_STORE && wallet?.publicKey && (
+              <>
+                <p>
+                  Initializing store will allow you to control list of creators.
+                </p>
 
-          <Button className="app-btn" type="primary" loading={isInitalizingStore} disabled={!CURRENT_STORE} onClick={async () => {
-            if(!wallet?.publicKey) {
-              return;
-            }
+                <Button
+                  className="app-btn"
+                  type="primary"
+                  loading={isInitalizingStore}
+                  disabled={!CURRENT_STORE}
+                  onClick={async () => {
+                    if (!wallet?.publicKey) {
+                      return;
+                    }
 
-            setIsInitalizingStore(true);
+                    setIsInitalizingStore(true);
 
-            await saveAdmin(connection, wallet, false, [new WhitelistedCreator({
-              address: wallet?.publicKey,
-              activated: true,
-            })]);
+                    await saveAdmin(connection, wallet, false, [
+                      new WhitelistedCreator({
+                        address: wallet?.publicKey,
+                        activated: true,
+                      }),
+                    ]);
 
-            history.push('/admin');
+                    history.push('/admin');
 
-            window.location.reload();
-          }}>Init Store</Button>
-        </>}
-      </>}
-      <PreSaleBanner auction={heroAuction} />
-      <Layout>
-        <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
-          <Col style={{ width: '100%', marginTop: 10 }}>
-            {liveAuctions.length > 1 && (<Row>
-              <Tabs activeKey={activeKey}
-                  onTabClick={key => setActiveKey(key as LiveAuctionViewState)}>
+                    window.location.reload();
+                  }}
+                >
+                  Init Store
+                </Button>
+              </>
+            )}
+          </>
+        )}
+        {/* <PreSaleBanner auction={heroAuction} /> */}
+        <Banner src={'/main-banner.svg'} />
+        <Layout>
+          <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
+            <Col style={{ width: '100%', marginTop: 32 }}>
+              <Row>
+                <Tabs>
                   <TabPane
-                    tab={<span className="tab-title">Live Auctions</span>}
-                    key={LiveAuctionViewState.All}
+                    tab={
+                      <>
+                        <span className={'live'}></span> Live
+                      </>
+                    }
+                    key={1}
+                    active={true}
                   >
                     {liveAuctionsView}
                   </TabPane>
-                  {auctionsEnded.length > 0 && (
-                  <TabPane
-                    tab={<span className="tab-title">Ended Auctions</span>}
-                    key={LiveAuctionViewState.Ended}
-                  >
+                  <TabPane tab={'Ended'} key={2}>
                     {endedAuctions}
                   </TabPane>
-                  )}
-                  // Show all participated live and ended auctions except heroauction
-                  {connected && (
-                    <TabPane
-                      tab={<span className="tab-title">Participated</span>}
-                      key={LiveAuctionViewState.Participated}
-                    >
-                      {liveAuctionsView}
-                    </TabPane>
-                  )}
-              </Tabs>
-            </Row>)}
-          </Col>
-        </Content>
+                </Tabs>
+              </Row>
+            </Col>
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
+    </AppLayout>
   );
 };

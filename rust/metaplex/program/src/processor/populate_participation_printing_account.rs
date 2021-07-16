@@ -18,9 +18,7 @@ use {
     },
     spl_auction::processor::{AuctionData, AuctionDataExtended, AuctionState},
     spl_token::{instruction::close_account, state::Account},
-    spl_token_metadata::{
-        deprecated_instruction::deprecated_mint_printing_tokens_via_token, state::MasterEditionV1,
-    },
+    spl_token_metadata::{instruction::mint_printing_tokens_via_token, state::MasterEdition},
     spl_token_vault::state::SafetyDepositBox,
 };
 
@@ -39,7 +37,7 @@ fn mint_printing_tokens<'a: 'b, 'b>(
     authority_signer_seeds: &'b [&'b [u8]],
 ) -> ProgramResult {
     let result = invoke_signed(
-        &deprecated_mint_printing_tokens_via_token(
+        &mint_printing_tokens_via_token(
             *program.key,
             *destination.key,
             *token.key,
@@ -70,7 +68,7 @@ fn mint_printing_tokens<'a: 'b, 'b>(
 
 #[allow(clippy::unnecessary_cast)]
 #[allow(clippy::absurd_extreme_comparisons)]
-pub fn process_deprecated_populate_participation_printing_account<'a>(
+pub fn process_populate_participation_printing_account<'a>(
     program_id: &'a Pubkey,
     accounts: &'a [AccountInfo<'a>],
 ) -> ProgramResult {
@@ -101,7 +99,7 @@ pub fn process_deprecated_populate_participation_printing_account<'a>(
     let safety_deposit_token_store: Account = assert_initialized(&safety_deposit_token_store_info)?;
     let auction = AuctionData::from_account_info(auction_info)?;
     let auction_extended = AuctionDataExtended::from_account_info(auction_extended_info)?;
-    let master_edition = MasterEditionV1::from_account_info(master_edition_info)?;
+    let master_edition = MasterEdition::from_account_info(master_edition_info)?;
     let transient_one_time_auth_holding_account: Account =
         assert_initialized(transient_one_time_holding_info)?;
     let participation_printing_account: Account =

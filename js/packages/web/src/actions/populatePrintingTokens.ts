@@ -7,11 +7,8 @@ import {
 import {
   utils,
   createAssociatedTokenAccountInstruction,
-  deprecatedMintPrintingTokens,
+  mintPrintingTokens,
   findProgramAddress,
-  MasterEditionV1,
-  ParsedAccount,
-  MetadataKey,
 } from '@oyster/common';
 
 import BN from 'bn.js';
@@ -20,7 +17,7 @@ import { SafetyDepositInstructionConfig } from './addTokensToVault';
 const BATCH_SIZE = 4;
 // Printing tokens are minted on the fly as needed. We need to pre-mint them to give to the vault
 // for all relevant NFTs.
-export async function deprecatedPopulatePrintingTokens(
+export async function populatePrintingTokens(
   connection: Connection,
   wallet: any,
   safetyDepositConfigs: SafetyDepositInstructionConfig[],
@@ -40,19 +37,17 @@ export async function deprecatedPopulatePrintingTokens(
   let currInstructions: TransactionInstruction[] = [];
   for (let i = 0; i < safetyDepositConfigs.length; i++) {
     let nft = safetyDepositConfigs[i];
-    if (nft.draft.masterEdition?.info.key != MetadataKey.MasterEditionV1) {
-      continue;
-    }
-    const printingMint = (
-      nft.draft.masterEdition as ParsedAccount<MasterEditionV1>
-    )?.info.printingMint;
-    if (nft.tokenMint.equals(printingMint) && !nft.tokenAccount) {
+    if (
+      nft.tokenMint.toBase58() ===
+        nft.draft.masterEdition?.info.printingMint.toBase58() &&
+      !nft.tokenAccount
+    ) {
       const holdingKey: PublicKey = (
         await findProgramAddress(
           [
             wallet.publicKey.toBuffer(),
             PROGRAM_IDS.token.toBuffer(),
-            printingMint.toBuffer(),
+            nft.draft.masterEdition.info.printingMint.toBuffer(),
           ],
           PROGRAM_IDS.associatedToken,
         )
@@ -63,14 +58,18 @@ export async function deprecatedPopulatePrintingTokens(
         holdingKey,
         wallet.publicKey,
         wallet.publicKey,
-        printingMint,
+        nft.draft.masterEdition.info.printingMint,
       );
       console.log('Making atas');
 
       nft.draft.printingMintHolding = holdingKey;
       nft.tokenAccount = holdingKey;
     }
-    if (nft.tokenAccount && nft.tokenMint.equals(printingMint)) {
+    if (
+      nft.tokenAccount &&
+      nft.tokenMint.toBase58() ===
+        nft.draft.masterEdition?.info.printingMint.toBase58()
+    ) {
       let balance = 0;
       try {
         balance =
@@ -79,9 +78,9 @@ export async function deprecatedPopulatePrintingTokens(
       } catch (e) {
         console.error(e);
       }
-
+      console.log('bal', balance);
       if (balance < nft.amount.toNumber() && nft.draft.masterEdition)
-        await deprecatedMintPrintingTokens(
+        await mintPrintingTokens(
           nft.tokenAccount,
           nft.tokenMint,
           wallet.publicKey,
