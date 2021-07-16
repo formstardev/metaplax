@@ -14,16 +14,17 @@ import BN from 'bn.js';
 import { programIds, useConnection, useWallet } from '@oyster/common';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { WhitelistedCreator } from '../../models/metaplex';
-import { Banner } from '../../components/Banner';
+import { ArtistAlleyForm } from '../../components/ArtistAlleyForm';
 
 const { TabPane } = Tabs;
 
 const { Content } = Layout;
-export const HomeView = () => {
+export const ArtistAlleyView = () => {
   const auctions = useAuctions(AuctionViewState.Live);
   const auctionsEnded = useAuctions(AuctionViewState.Ended);
   const { isLoading, store } = useMeta();
   const [isInitalizingStore, setIsInitalizingStore] = useState(false);
+  const [showForm, setForm] = useState(false);
   const connection = useConnection();
   const history = useHistory();
   const { wallet, connect } = useWallet();
@@ -37,10 +38,7 @@ export const HomeView = () => {
   const heroAuction = useMemo(
     () =>
       auctions.filter(a => {
-        // const now = moment().unix();
         return !a.auction.info.ended();
-        // filter out auction for banner that are further than 30 days in the future
-        // return Math.floor(delta / 86400) <= 30;
       })?.[0],
     [auctions],
   );
@@ -101,15 +99,80 @@ export const HomeView = () => {
 
   const CURRENT_STORE = programIds().store;
 
-  return (
-    <Layout style={{ margin: 0, alignItems: 'center' }}>
+  const handleFormButton = () => {
+    setForm(true);
+  };
+
+  const handleWallet = async () => {
+    if (!wallet?.publicKey) {
+      return;
+    }
+    setIsInitalizingStore(true);
+    await saveAdmin(connection, wallet, false, [
+      new WhitelistedCreator({
+        address: wallet?.publicKey,
+        activated: true,
+      }),
+    ]);
+    history.push('/admin');
+    window.location.reload();
+  };
+
+  const banner = (
+    <div className="banner">
+      <div className="banner-title">
+        <p>Submit your original artwork to be featured by todd McFarlane</p>
+        <Button
+          type="primary"
+          className="banner-button"
+          onClick={handleFormButton}
+        >
+          SUBMIT YOUR ARTWORK
+        </Button>
+      </div>
+    </div>
+  );
+
+  const showCase = (
+    <Layout>
+      <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
+        <Col style={{ width: '100%', marginTop: 10 }}>
+          {liveAuctions.length > 1 && (
+            <Row>
+              <Tabs>
+                <TabPane>
+                  <h2>Live Auctions</h2>
+                  {liveAuctionsView}
+                </TabPane>
+              </Tabs>
+            </Row>
+          )}
+          <Row>
+            {auctionsEnded.length > 0 && (
+              <Tabs>
+                <TabPane>
+                  <h2>Ended Auctions</h2>
+                  {endedAuctions}
+                </TabPane>
+              </Tabs>
+            )}
+            <br />
+          </Row>
+        </Col>
+      </Content>
+    </Layout>
+  );
+
+  const showFront = (
+    <Layout style={{ margin: 0, marginTop: 30, alignItems: 'center' }}>
+      {banner}
       {!store && !isLoading && (
         <>
           {!CURRENT_STORE && (
             <p>
               Store has not been configured please set{' '}
-              <em>REACT_APP_STORE_OWNER_ADDRESS_ADDRESS</em> to admin wallet
-              inside <em>packages/web/.env</em> and restart yarn
+              <em>REACT_APP_STORE_OWNER_ADDRESS_ADDRESS</em>
+              to admin wallet inside <em>packages/web/.env</em> and restart yarn
             </p>
           )}
           {CURRENT_STORE && !wallet?.publicKey && (
@@ -125,30 +188,12 @@ export const HomeView = () => {
               <p>
                 Initializing store will allow you to control list of creators.
               </p>
-
               <Button
                 className="app-btn"
                 type="primary"
                 loading={isInitalizingStore}
                 disabled={!CURRENT_STORE}
-                onClick={async () => {
-                  if (!wallet?.publicKey) {
-                    return;
-                  }
-
-                  setIsInitalizingStore(true);
-
-                  await saveAdmin(connection, wallet, false, [
-                    new WhitelistedCreator({
-                      address: wallet?.publicKey,
-                      activated: true,
-                    }),
-                  ]);
-
-                  history.push('/admin');
-
-                  window.location.reload();
-                }}
+                onClick={handleWallet}
               >
                 Init Store
               </Button>
@@ -156,35 +201,9 @@ export const HomeView = () => {
           )}
         </>
       )}
-      {/* <PreSaleBanner auction={heroAuction} /> */}
-      <Banner src={'/main-banner.svg'} />
-      <Layout>
-        <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
-          <Col style={{ width: '100%', marginTop: 10 }}>
-            {liveAuctions.length > 1 && (
-              <Row>
-                <Tabs>
-                  <TabPane>
-                    <h2>Live Auctions</h2>
-                    {liveAuctionsView}
-                  </TabPane>
-                </Tabs>
-              </Row>
-            )}
-            <Row>
-              {auctionsEnded.length > 0 && (
-                <Tabs>
-                  <TabPane>
-                    <h2>Ended Auctions</h2>
-                    {endedAuctions}
-                  </TabPane>
-                </Tabs>
-              )}
-              <br />
-            </Row>
-          </Col>
-        </Content>
-      </Layout>
+      <PreSaleBanner auction={heroAuction} />
+      {showCase}
     </Layout>
   );
+  return showForm ? <ArtistAlleyForm /> : showFront;
 };

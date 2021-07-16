@@ -5,28 +5,25 @@ import './../../App.less';
 import './index.less';
 import { LABELS } from '../../constants';
 import { AppBar } from '../AppBar';
-import useWindowDimensions from '../../utils/layout';
+// import useWindowDimensions from '../../utils/layout';
 
 const { Header, Content } = Layout;
 
-const paddingForLayout = (width: number) => {
-  if (width <= 768) return "5px 10px"
-  if (width > 768) return "10px 30px"
-}
 
 export const AppLayout = React.memo((props: any) => {
-  const { width } = useWindowDimensions();
+  // const { width } = useWindowDimensions();
 
   return (
     <>
-      <Layout title={LABELS.APP_TITLE} style={{
-        padding: paddingForLayout(width),
-        maxWidth: 1000,
-      }}>
+      <Layout id={'main-layout'}>
+        <div id={'main-bg'}></div>
         <Header className="App-Bar">
           <AppBar />
         </Header>
-        <Content style={{ overflow: 'scroll', paddingBottom: 50 }}>
+        <Content style={{
+          overflow: "scroll",
+          padding: "30px 2vw",
+        }}>
           {props.children}
         </Content>
       </Layout>

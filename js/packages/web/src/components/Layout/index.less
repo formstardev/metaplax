@@ -1,3 +1,5 @@
+@import "_colors";
+
 .metamask-icon {
   background-position: 50%;
   background-repeat: no-repeat;
@@ -8,10 +10,26 @@
   align-items: center;
   display: flex;
   flex-direction: row;
+  margin-left: 15px;
 }
+
 .app-right {
   align-items: center;
   display: flex;
   flex-direction: row;
+  margin-right: 15px;
+}
 
+
+div#main-bg{
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  background-position: center -50vh;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: blur(100px) brightness(3);
+  height: 100vh;
 }

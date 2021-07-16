@@ -1,4 +1,7 @@
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  BellFilled,
+  BellOutlined,
   CheckCircleTwoTone,
   LoadingOutlined,
   PlayCircleOutlined,
@@ -13,14 +16,12 @@ import {
 } from '@oyster/common';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Badge, Popover, List } from 'antd';
-import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { closePersonalEscrow } from '../../actions/closePersonalEscrow';
 import { decommAuctionManagerAndReturnPrizes } from '../../actions/decommAuctionManagerAndReturnPrizes';
 import { sendSignMetadata } from '../../actions/sendSignMetadata';
 import { unwindVault } from '../../actions/unwindVault';
 import { settle } from '../../actions/settle';
-import { startAuctionManually } from '../../actions/startAuctionManually';
 
 import { QUOTE_MINT } from '../../constants';
 import { useMeta } from '../../contexts';
@@ -291,7 +292,6 @@ export function Notifications() {
   const possiblyBrokenAuctionManagerSetups = useAuctions(
     AuctionViewState.Defective,
   );
-  const upcomingAuctions = useAuctions(AuctionViewState.Upcoming);
   const connection = useConnection();
   const { wallet } = useWallet();
   const { accountByMint } = useUserAccounts();
@@ -411,25 +411,6 @@ export function Notifications() {
     });
   });
 
-  upcomingAuctions
-    .filter(v => v.auctionManager.info.authority.toBase58() === walletPubkey)
-    .forEach(v => {
-      notifications.push({
-        id: v.auctionManager.pubkey.toBase58(),
-        title: 'You have an auction which is not started yet!',
-        description: <span>You can activate it now if you wish.</span>,
-        action: async () => {
-          try {
-            await startAuctionManually(connection, wallet, v);
-          } catch (e) {
-            console.error(e);
-            return false;
-          }
-          return true;
-        },
-      });
-    });
-
   const content = notifications.length ? (
     <div style={{ width: '300px' }}>
       <List
@@ -478,7 +459,9 @@ export function Notifications() {
       content={content}
       trigger="click"
     >
-      <h1 className="title">M</h1>
+      <h1 className="title">
+        <BellOutlined style={{ fontSize: '16px' }} />
+      </h1>
     </Popover>
   );
 
