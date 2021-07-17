@@ -55,8 +55,9 @@ export const ArtCreateView = () => {
   const [step, setStep] = useState<number>(0);
   const [stepsVisible, setStepsVisible] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
-  const [nft, setNft] =
-    useState<{ metadataAccount: PublicKey } | undefined>(undefined);
+  const [nft, setNft] = useState<{ metadataAccount: PublicKey } | undefined>(
+    undefined,
+  );
   const [files, setFiles] = useState<File[]>([]);
   const [attributes, setAttributes] = useState<IMetadataExtension>({
     name: '',
@@ -459,8 +460,7 @@ const UploadStep = (props: {
                 files: [coverFile, mainFile, customURL]
                   .filter(f => f)
                   .map(f => {
-                    const uri =
-                      typeof f === 'string' ? f : cleanName(f?.name) || '';
+                    const uri = typeof f === 'string' ? f : f?.name || '';
                     const type =
                       typeof f === 'string' || !f
                         ? 'unknown'
@@ -472,8 +472,8 @@ const UploadStep = (props: {
                     } as MetadataFile;
                   }),
               },
-              image: cleanName(coverFile?.name) || '',
-              animation_url: cleanName(mainFile && mainFile.name),
+              image: coverFile?.name || '',
+              animation_url: mainFile && mainFile.name,
             });
             props.setFiles([coverFile, mainFile].filter(f => f) as File[]);
             props.confirm();

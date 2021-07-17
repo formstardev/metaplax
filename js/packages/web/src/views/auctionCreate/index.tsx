@@ -31,6 +31,7 @@ import {
   PriceFloor,
   PriceFloorType,
   IPartialCreateAuctionArgs,
+  MetadataKey,
 } from '@oyster/common';
 import { Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
@@ -193,7 +194,7 @@ export const AuctionCreateView = () => {
       // In these cases there is only ever one item in the array.
 
       let winningConfigs: WinningConfig[];
-      if (attributes.category === AuctionCategory.Single)
+      if (attributes.category === AuctionCategory.Single) {
         winningConfigs = [
           new WinningConfig({
             items: [
@@ -210,7 +211,7 @@ export const AuctionCreateView = () => {
             ],
           }),
         ];
-      else {
+      } else {
         winningConfigs = [];
         for (let i = 0; i < (attributes.editions || 1); i++) {
           winningConfigs.push(
@@ -219,7 +220,11 @@ export const AuctionCreateView = () => {
                 new WinningConfigItem({
                   safetyDepositBoxIndex: 0,
                   amount: 1,
-                  winningConfigType: WinningConfigType.Printing,
+                  winningConfigType:
+                    attributes.items[0].masterEdition?.info.key ==
+                    MetadataKey.MasterEditionV1
+                      ? WinningConfigType.PrintingV1
+                      : WinningConfigType.PrintingV2,
                 }),
               ],
             }),
@@ -308,22 +313,24 @@ export const AuctionCreateView = () => {
 
     const auctionSettings: IPartialCreateAuctionArgs = {
       winners: winnerLimit,
-      endAuctionAt: new BN(
-        (attributes.auctionDuration || 0) *
-          (attributes.auctionDurationType == 'days'
-            ? 60 * 60 * 24 // 1 day in seconds
-            : attributes.auctionDurationType == 'hours'
-            ? 60 * 60 // 1 hour in seconds
-            : 60), // 1 minute in seconds
-      ), // endAuctionAt is actually auction duration, poorly named, in seconds
-      auctionGap: new BN(
-        (attributes.gapTime || 0) *
-          (attributes.gapTimeType == 'days'
-            ? 60 * 60 * 24 // 1 day in seconds
-            : attributes.gapTimeType == 'hours'
-            ? 60 * 60 // 1 hour in seconds
-            : 60), // 1 minute in seconds
-      ),
+      endAuctionAt: new BN((attributes.auctionDuration || 0) * (
+        attributes.auctionDurationType == "days"
+        ? (60 * 60 * 24) // 1 day in seconds
+        : (
+          attributes.auctionDurationType == "hours"
+          ? (60 * 60) // 1 hour in seconds
+          : 60 // 1 minute in seconds
+        )
+      )), // endAuctionAt is actually auction duration, poorly named, in seconds
+      auctionGap: new BN((attributes.gapTime || 0) * (
+        attributes.gapTimeType == "days"
+        ? (60 * 60 * 24) // 1 day in seconds
+        : (
+          attributes.gapTimeType == "hours"
+          ? (60 * 60) // 1 hour in seconds
+          : 60 // 1 minute in seconds
+        )
+      )),
       priceFloor: new PriceFloor({
         type: attributes.priceFloor
           ? PriceFloorType.Minimum
@@ -877,8 +884,8 @@ const PriceAuction = (props: {
             <label className="action-field">
               <span className="field-title">Price</span>
               <span className="field-info">
-                This is an optional fixed price that non-winners will pay for
-                your Participation NFT.
+                This is the fixed price that everybody will pay for your
+                Participation NFT.
               </span>
               <Input
                 type="number"
@@ -1156,21 +1163,21 @@ const EndingPhaseAuction = (props: {
               This is how long the auction will last for.
             </span>
             <Input
-              addonAfter={
-                <Select
-                  defaultValue={props.attributes.auctionDurationType}
-                  onChange={value =>
-                    props.setAttributes({
-                      ...props.attributes,
-                      auctionDurationType: value,
-                    })
-                  }
-                >
+              addonAfter={(
+                <Select 
+                  defaultValue={props.attributes.auctionDurationType} 
+                  onChange={
+                    value =>
+                      props.setAttributes({
+                        ...props.attributes,
+                        auctionDurationType: value,
+                      })
+                  }>
                   <Option value="minutes">Minutes</Option>
                   <Option value="hours">Hours</Option>
                   <Option value="days">Days</Option>
                 </Select>
-              }
+              )}
               autoFocus
               type="number"
               className="input"
@@ -1192,21 +1199,21 @@ const EndingPhaseAuction = (props: {
               will extend the end time by this same duration.
             </span>
             <Input
-              addonAfter={
-                <Select
+              addonAfter={(
+                <Select 
                   defaultValue={props.attributes.gapTimeType}
-                  onChange={value =>
-                    props.setAttributes({
-                      ...props.attributes,
-                      gapTimeType: value,
-                    })
-                  }
-                >
+                  onChange={
+                    value => 
+                      props.setAttributes({
+                        ...props.attributes,
+                        gapTimeType: value,
+                      })
+                  }>
                   <Option value="minutes">Minutes</Option>
                   <Option value="hours">Hours</Option>
                   <Option value="days">Days</Option>
                 </Select>
-              }
+              )}
               type="number"
               className="input"
               placeholder="Set the gap time"
@@ -1411,26 +1418,34 @@ const TierTableStep = (props: {
 
                     const newTiers = newImmutableTiers(props.attributes.tiers);
                     if (items[0]) {
-                      const existing = props.attributes.items.find(
-                        it =>
-                          it.metadata.pubkey.toBase58() ===
-                          items[0].metadata.pubkey.toBase58(),
+                      const existing = props.attributes.items.find(it =>
+                        it.metadata.pubkey.equals(items[0].metadata.pubkey),
                       );
                       if (!existing) newItems.push(items[0]);
-                      const index = newItems.findIndex(
-                        it =>
-                          it.metadata.pubkey.toBase58() ===
-                          items[0].metadata.pubkey.toBase58(),
+                      const index = newItems.findIndex(it =>
+                        it.metadata.pubkey.equals(items[0].metadata.pubkey),
                       );
 
                       const myNewTier = newTiers[configIndex].items[itemIndex];
                       myNewTier.safetyDepositBoxIndex = index;
-                      if (items[0].masterEdition)
+                      if (
+                        items[0].masterEdition &&
+                        items[0].masterEdition.info.key ==
+                          MetadataKey.MasterEditionV1
+                      ) {
                         myNewTier.winningConfigType =
-                          WinningConfigType.Printing;
-                      else
+                          WinningConfigType.PrintingV1;
+                      } else if (
+                        items[0].masterEdition &&
+                        items[0].masterEdition.info.key ==
+                          MetadataKey.MasterEditionV2
+                      ) {
+                        myNewTier.winningConfigType =
+                          WinningConfigType.PrintingV2;
+                      } else {
                         myNewTier.winningConfigType =
                           WinningConfigType.TokenOnlyTransfer;
+                      }
                       myNewTier.amount = 1;
                     } else if (
                       (i as WinningConfigItem).safetyDepositBoxIndex !==
@@ -1493,6 +1508,17 @@ const TierTableStep = (props: {
                         const myNewTier =
                           newTiers[configIndex].items[itemIndex];
 
+                        // Legacy hack...
+                        if (
+                          value == WinningConfigType.PrintingV2 &&
+                          myNewTier.safetyDepositBoxIndex &&
+                          props.attributes.items[
+                            myNewTier.safetyDepositBoxIndex
+                          ].masterEdition?.info.key ==
+                            MetadataKey.MasterEditionV1
+                        ) {
+                          value = WinningConfigType.PrintingV1;
+                        }
                         myNewTier.winningConfigType = value;
                         props.setAttributes({
                           ...props.attributes,
@@ -1506,13 +1532,19 @@ const TierTableStep = (props: {
                       <Option value={WinningConfigType.TokenOnlyTransfer}>
                         Token Only Transfer
                       </Option>
-                      <Option value={WinningConfigType.Printing}>
-                        Printing
+                      <Option value={WinningConfigType.PrintingV2}>
+                        Printing V2
+                      </Option>
+
+                      <Option value={WinningConfigType.PrintingV1}>
+                        Printing V1
                       </Option>
                     </Select>
 
-                    {(i as WinningConfigItem).winningConfigType ===
-                      WinningConfigType.Printing && (
+                    {((i as WinningConfigItem).winningConfigType ===
+                      WinningConfigType.PrintingV1 ||
+                      (i as WinningConfigItem).winningConfigType ===
+                        WinningConfigType.PrintingV2) && (
                       <label className="action-field">
                         <span className="field-title">
                           How many copies do you want to create for each winner?
