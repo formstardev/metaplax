@@ -61,13 +61,13 @@ export const HomeView = () => {
     >
       {!isLoading
         ? liveAuctions.map((m, idx) => {
-          const id = m.auction.pubkey.toBase58();
-          return (
-            <Link to={`/auction/${id}`} key={idx}>
-              <AuctionRenderCard key={id} auctionView={m} />
-            </Link>
-          );
-        })
+            const id = m.auction.pubkey.toBase58();
+            return (
+              <Link to={`/auction/${id}`} key={idx}>
+                <AuctionRenderCard key={id} auctionView={m} />
+              </Link>
+            );
+          })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -79,19 +79,19 @@ export const HomeView = () => {
     >
       {!isLoading
         ? auctionsEnded
-          .filter((m, idx) => idx < 10)
-          .map((m, idx) => {
-            if (m === heroAuction) {
-              return;
-            }
+            .filter((m, idx) => idx < 10)
+            .map((m, idx) => {
+              if (m === heroAuction) {
+                return;
+              }
 
-            const id = m.auction.pubkey.toBase58();
-            return (
-              <Link to={`/auction/${id}`} key={idx}>
-                <AuctionRenderCard key={id} auctionView={m} />
-              </Link>
-            );
-          })
+              const id = m.auction.pubkey.toBase58();
+              return (
+                <Link to={`/auction/${id}`} key={idx}>
+                  <AuctionRenderCard key={id} auctionView={m} />
+                </Link>
+              );
+            })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -154,26 +154,39 @@ export const HomeView = () => {
         </>
       )}
       {/* <PreSaleBanner auction={heroAuction} /> */}
-      <Banner src={'/main-banner.svg'}>
-        <div style={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          marginLeft: "4vw",
-          maxWidth: 350,
-          lineHeight: 1.1,
-        }}>
-          <h1 style={{
-            color: "white",
-            margin: 0,
-          }}>The amazing world of McFarlane.</h1>
-          <p style={{
-            color: "white",
-            fontSize: "clamp(0.7em, 1.5vw, 16px)",
-            margin: "1rem 0 2rem",
-          }}>Buy exclusive McFarlane NFTs.</p>
-          <Button onClick={() => console.log("HOW TO BUY")} className="secondary-btn">
+      <Banner src={'/main-banner.svg'} useBannerBg={true}>
+        <div
+          style={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            marginLeft: '4vw',
+            maxWidth: 350,
+            lineHeight: 1.1,
+          }}
+        >
+          <h1
+            style={{
+              color: 'white',
+              margin: 0,
+            }}
+          >
+            The amazing world of McFarlane.
+          </h1>
+          <p
+            style={{
+              color: 'white',
+              fontSize: 'clamp(0.7em, 1.5vw, 16px)',
+              margin: '1rem 0 2rem',
+            }}
+          >
+            Buy exclusive McFarlane NFTs.
+          </p>
+          <Button
+            onClick={() => console.log('HOW TO BUY')}
+            className="secondary-btn"
+          >
             How to Buy
           </Button>
         </div>
@@ -181,24 +194,27 @@ export const HomeView = () => {
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Col style={{ width: '100%', marginTop: 10 }}>
-            <Row>
-              <Tabs>
-                <TabPane
-                  tab={
-                    <>
-                      <span className={'live'}></span> Live
-                    </>
-                  }
-                  key={1}
-                  active={true}
-                >
-                  {liveAuctionsView}
-                </TabPane>
-                <TabPane tab={'Ended'} key={2}>
-                  {endedAuctions}
-                </TabPane>
-              </Tabs>
-            </Row>
+            {liveAuctions.length >= 1 && (
+              <Row>
+                <Tabs>
+                  <TabPane>
+                    <h2>Live Auctions</h2>
+                    {liveAuctionsView}
+                  </TabPane>
+                </Tabs>
+              </Row>
+            )}
+            {auctionsEnded.length > 0 && (
+              <Row>
+                <Tabs>
+                  <TabPane>
+                    <h2>Ended Auctions</h2>
+                    {endedAuctions}
+                  </TabPane>
+                </Tabs>
+                <br />
+              </Row>
+            )}
           </Col>
         </Content>
       </Layout>
