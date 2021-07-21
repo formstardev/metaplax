@@ -5,6 +5,7 @@ import Masonry from 'react-masonry-css';
 import { PreSaleBanner } from '../../components/PreSaleBanner';
 import { AuctionViewState, useAuctions } from '../../hooks';
 
+import './index.less';
 import { AuctionRenderCard } from '../../components/AuctionRenderCard';
 import { Link, useHistory } from 'react-router-dom';
 import { CardLoader } from '../../components/MyLoader';
@@ -13,26 +14,20 @@ import BN from 'bn.js';
 import { programIds, useConnection, useWallet } from '@oyster/common';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { WhitelistedCreator } from '../../models/metaplex';
+import { Banner } from '../../components/Banner';
+import { AppLayout } from '../../components/Layout';
 
 const { TabPane } = Tabs;
 
 const { Content } = Layout;
-
-export enum LiveAuctionViewState {
-  All = '0',
-  Participated = '1',
-  Ended = '2',
-};
-
 export const HomeView = () => {
   const auctions = useAuctions(AuctionViewState.Live);
   const auctionsEnded = useAuctions(AuctionViewState.Ended);
-  const [activeKey, setActiveKey] = useState(LiveAuctionViewState.All);
   const { isLoading, store } = useMeta();
   const [isInitalizingStore, setIsInitalizingStore] = useState(false);
   const connection = useConnection();
   const history = useHistory();
-  const { wallet, connect, connected } = useWallet();
+  const { wallet, connect } = useWallet();
   const breakpointColumnsObj = {
     default: 4,
     1100: 3,
@@ -58,13 +53,6 @@ export const HomeView = () => {
         .toNumber() || 0,
   );
 
-  const items =
-    activeKey === LiveAuctionViewState.All
-      ? liveAuctions
-      : activeKey === LiveAuctionViewState.Participated ?
-      liveAuctions.concat(auctionsEnded).filter((m, idx) => m.myBidderMetadata?.info.bidderPubkey.toBase58() == wallet?.publicKey?.toBase58()):
-      auctionsEnded;
-
   const liveAuctionsView = (
     <Masonry
       breakpointCols={breakpointColumnsObj}
@@ -72,18 +60,14 @@ export const HomeView = () => {
       columnClassName="my-masonry-grid_column"
     >
       {!isLoading
-        ? items.map((m, idx) => {
-              if (m === heroAuction) {
-                return;
-              }
-
-            const id = m.auction.pubkey.toBase58();
-            return (
-              <Link to={`/auction/${id}`} key={idx}>
-                <AuctionRenderCard key={id} auctionView={m} />
-              </Link>
-            );
-          })
+        ? liveAuctions.map((m, idx) => {
+          const id = m.auction.pubkey.toBase58();
+          return (
+            <Link to={`/auction/${id}`} key={idx}>
+              <AuctionRenderCard key={id} auctionView={m} />
+            </Link>
+          );
+        })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -95,18 +79,19 @@ export const HomeView = () => {
     >
       {!isLoading
         ? auctionsEnded
-            .map((m, idx) => {
-              if (m === heroAuction) {
-                return;
-              }
+          .filter((m, idx) => idx < 10)
+          .map((m, idx) => {
+            if (m === heroAuction) {
+              return;
+            }
 
-              const id = m.auction.pubkey.toBase58();
-              return (
-                <Link to={`/auction/${id}`} key={idx}>
-                  <AuctionRenderCard key={id} auctionView={m} />
-                </Link>
-              );
-            })
+            const id = m.auction.pubkey.toBase58();
+            return (
+              <Link to={`/auction/${id}`} key={idx}>
+                <AuctionRenderCard key={id} auctionView={m} />
+              </Link>
+            );
+          })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -114,7 +99,7 @@ export const HomeView = () => {
   const CURRENT_STORE = programIds().store;
 
   return (
-    <Layout style={{ margin: 0, marginTop: 30, alignItems: 'center' }}>
+    <Layout style={{ margin: 0, alignItems: 'center' }}>
       {!store && !isLoading && (
         <>
           {!CURRENT_STORE && (
@@ -168,40 +153,52 @@ export const HomeView = () => {
           )}
         </>
       )}
-      <PreSaleBanner auction={heroAuction} />
+      {/* <PreSaleBanner auction={heroAuction} /> */}
+      <Banner src={'/main-banner.svg'}>
+        <div style={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          marginLeft: "4vw",
+          maxWidth: 350,
+          lineHeight: 1.1,
+        }}>
+          <h1 style={{
+            color: "white",
+            margin: 0,
+          }}>The amazing world of McFarlane.</h1>
+          <p style={{
+            color: "white",
+            fontSize: "clamp(0.7em, 1.5vw, 16px)",
+            margin: "1rem 0 2rem",
+          }}>Buy exclusive McFarlane NFTs.</p>
+          <Button onClick={() => console.log("HOW TO BUY")} className="secondary-btn">
+            How to Buy
+          </Button>
+        </div>
+      </Banner>
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Col style={{ width: '100%', marginTop: 10 }}>
-            {liveAuctions.length > 1 && (<Row>
-              <Tabs activeKey={activeKey}
-                  onTabClick={key => setActiveKey(key as LiveAuctionViewState)}>
-                  <TabPane
-                    tab={<span className="tab-title">Live Auctions</span>}
-                    key={LiveAuctionViewState.All}
-                  >
-                    {liveAuctionsView}
-                  </TabPane>
-                  {auctionsEnded.length > 0 && (
-                  <TabPane
-                    tab={<span className="tab-title">Ended Auctions</span>}
-                    key={LiveAuctionViewState.Ended}
-                  >
-                    {endedAuctions}
-                  </TabPane>
-                  )}
-                  {
-                    // Show all participated live and ended auctions except hero auction
+            <Row>
+              <Tabs>
+                <TabPane
+                  tab={
+                    <>
+                      <span className={'live'}></span> Live
+                    </>
                   }
-                  {connected && (
-                    <TabPane
-                      tab={<span className="tab-title">Participated</span>}
-                      key={LiveAuctionViewState.Participated}
-                    >
-                      {liveAuctionsView}
-                    </TabPane>
-                  )}
+                  key={1}
+                  active={true}
+                >
+                  {liveAuctionsView}
+                </TabPane>
+                <TabPane tab={'Ended'} key={2}>
+                  {endedAuctions}
+                </TabPane>
               </Tabs>
-            </Row>)}
+            </Row>
           </Col>
         </Content>
       </Layout>

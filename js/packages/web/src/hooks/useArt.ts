@@ -5,8 +5,7 @@ import { Art, Artist, ArtType } from '../types';
 import {
   Edition,
   IMetadataExtension,
-  MasterEditionV1,
-  MasterEditionV2,
+  MasterEdition,
   Metadata,
   ParsedAccount,
 } from '@oyster/common';
@@ -17,10 +16,7 @@ import { useInView } from 'react-intersection-observer';
 const metadataToArt = (
   info: Metadata | undefined,
   editions: Record<string, ParsedAccount<Edition>>,
-  masterEditions: Record<
-    string,
-    ParsedAccount<MasterEditionV1 | MasterEditionV2>
-  >,
+  masterEditions: Record<string, ParsedAccount<MasterEdition>>,
   whitelistedCreatorsByCreator: Record<
     string,
     ParsedAccount<WhitelistedCreator>
