@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import './index.less';
 import { Link } from 'react-router-dom';
 import { Button, Dropdown, Menu } from 'antd';
 import { ConnectButton, CurrentUserBadge, useWallet } from '@oyster/common';
@@ -7,21 +6,6 @@ import { Notifications } from '../Notifications';
 import useWindowDimensions from '../../utils/layout';
 import { MenuOutlined } from '@ant-design/icons';
 import { useMeta } from '../../contexts';
-import { ModalHowToBuy} from "../ModalHowToBuy";
-
-const getDefaultLinkActions = (connected: boolean) => {
-  return [
-    <Link to={`/artworks`}>
-      <Button className="app-btn">{connected ? 'My Items' : 'Artworks'}</Button>
-    </Link>,
-    <Link to={`/artists`}>
-      <Button className="app-btn">Creators</Button>
-    </Link>,
-    <Link to={`/artistAlley`}>
-      <Button className="app-btn">Artist Alley</Button>
-    </Link>,
-  ];
-};
 
 const UserActions = () => {
   const { wallet } = useWallet();
@@ -65,7 +49,17 @@ const DefaultActions = ({ vertical = false }: { vertical?: boolean }) => {
         flexDirection: vertical ? 'column' : 'row',
       }}
     >
-      {getDefaultLinkActions(connected)}
+      <Link to={`/`}>
+        <Button className="app-btn">Explore</Button>
+      </Link>
+      <Link to={`/artworks`}>
+        <Button className="app-btn">
+          {connected ? 'My Items' : 'Artworks'}
+        </Button>
+      </Link>
+      <Link to={`/artists`}>
+        <Button className="app-btn">Creators</Button>
+      </Link>
     </div>
   );
 };
@@ -83,7 +77,23 @@ const MetaplexMenu = () => {
           trigger={['click']}
           overlay={
             <Menu>
-              {getDefaultLinkActions(connected).map((item, idx) => <Menu.Item key={idx}>{item}</Menu.Item>)}
+              <Menu.Item>
+                <Link to={`/`}>
+                  <Button className="app-btn">Explore</Button>
+                </Link>
+              </Menu.Item>
+              <Menu.Item>
+                <Link to={`/artworks`}>
+                  <Button className="app-btn">
+                    {connected ? 'My Items' : 'Artworks'}
+                  </Button>
+                </Link>
+              </Menu.Item>
+              <Menu.Item>
+                <Link to={`/artists`}>
+                  <Button className="app-btn">Creators</Button>
+                </Link>
+              </Menu.Item>
             </Menu>
           }
         >
@@ -95,49 +105,27 @@ const MetaplexMenu = () => {
   return <DefaultActions />;
 };
 
-export const LogoLink = () => {
-  return (
-    <Link to={`/`}>
-      <img src={'/mcfarlane-logo.svg'} />
-    </Link>
-  );
-};
-
 export const AppBar = () => {
   const { connected } = useWallet();
-  const [isModalOpen, setModalOpen] = React.useState(false);
-
-  const toggleModal = () => setModalOpen(!isModalOpen);
 
   return (
     <>
-      <div className="app-left">
-        <LogoLink />
-        &nbsp;&nbsp;&nbsp;
+      <div className="app-left app-bar-box">
+        <Notifications />
+        <div className="divider" />
         <MetaplexMenu />
       </div>
-      <div className="app-right">
-        <div
-          className={"link-modal"}
-          onClick={toggleModal}
-        >
-          How to Buy
-        </div>
-        {!connected && <ConnectButton type="primary" className="connector"/>}
-        {connected && <>
+      {!connected && <ConnectButton type="primary" />}
+      {connected && (
+        <div className="app-right app-bar-box">
           <UserActions />
-          <Notifications />
           <CurrentUserBadge
             showBalance={false}
             showAddress={false}
             iconSize={24}
           />
-        </>}
-      </div>
-      <ModalHowToBuy
-        isOpen={isModalOpen}
-        onClose={toggleModal}
-      />
+        </div>
+      )}
     </>
   );
 };

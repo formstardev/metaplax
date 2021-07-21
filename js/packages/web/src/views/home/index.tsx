@@ -5,7 +5,6 @@ import Masonry from 'react-masonry-css';
 import { PreSaleBanner } from '../../components/PreSaleBanner';
 import { AuctionViewState, useAuctions } from '../../hooks';
 
-import './index.less';
 import { AuctionRenderCard } from '../../components/AuctionRenderCard';
 import { Link, useHistory } from 'react-router-dom';
 import { CardLoader } from '../../components/MyLoader';
@@ -14,30 +13,32 @@ import BN from 'bn.js';
 import { programIds, useConnection, useWallet } from '@oyster/common';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { WhitelistedCreator } from '../../models/metaplex';
-import { Banner } from '../../components/Banner';
-import { AppLayout } from '../../components/Layout';
-import {ModalHowToBuy} from "../../components/ModalHowToBuy";
 
 const { TabPane } = Tabs;
 
 const { Content } = Layout;
+
+export enum LiveAuctionViewState {
+  All = '0',
+  Participated = '1',
+  Ended = '2',
+};
+
 export const HomeView = () => {
-  const [isModalOpen, setModalOpen] = useState(false);
   const auctions = useAuctions(AuctionViewState.Live);
   const auctionsEnded = useAuctions(AuctionViewState.Ended);
+  const [activeKey, setActiveKey] = useState(LiveAuctionViewState.All);
   const { isLoading, store } = useMeta();
   const [isInitalizingStore, setIsInitalizingStore] = useState(false);
   const connection = useConnection();
   const history = useHistory();
-  const { wallet, connect } = useWallet();
+  const { wallet, connect, connected } = useWallet();
   const breakpointColumnsObj = {
     default: 4,
     1100: 3,
     700: 2,
     500: 1,
   };
-
-  const toggleModal = () => setModalOpen(!isModalOpen);
 
   const heroAuction = useMemo(
     () =>
@@ -57,6 +58,13 @@ export const HomeView = () => {
         .toNumber() || 0,
   );
 
+  const items =
+    activeKey === LiveAuctionViewState.All
+      ? liveAuctions
+      : activeKey === LiveAuctionViewState.Participated ?
+      liveAuctions.concat(auctionsEnded).filter((m, idx) => m.myBidderMetadata?.info.bidderPubkey.toBase58() == wallet?.publicKey?.toBase58()):
+      auctionsEnded;
+
   const liveAuctionsView = (
     <Masonry
       breakpointCols={breakpointColumnsObj}
@@ -64,7 +72,11 @@ export const HomeView = () => {
       columnClassName="my-masonry-grid_column"
     >
       {!isLoading
-        ? liveAuctions.map((m, idx) => {
+        ? items.map((m, idx) => {
+              if (m === heroAuction) {
+                return;
+              }
+
             const id = m.auction.pubkey.toBase58();
             return (
               <Link to={`/auction/${id}`} key={idx}>
@@ -83,7 +95,6 @@ export const HomeView = () => {
     >
       {!isLoading
         ? auctionsEnded
-            .filter((m, idx) => idx < 10)
             .map((m, idx) => {
               if (m === heroAuction) {
                 return;
@@ -103,7 +114,7 @@ export const HomeView = () => {
   const CURRENT_STORE = programIds().store;
 
   return (
-    <Layout style={{ margin: 0, alignItems: 'center' }}>
+    <Layout style={{ margin: 0, marginTop: 30, alignItems: 'center' }}>
       {!store && !isLoading && (
         <>
           {!CURRENT_STORE && (
@@ -157,63 +168,43 @@ export const HomeView = () => {
           )}
         </>
       )}
-      {/* <PreSaleBanner auction={heroAuction} /> */}
-      <Banner src={'/main-banner.svg'}>
-        <div style={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          marginLeft: "4vw",
-          maxWidth: 350,
-          lineHeight: 1.1,
-        }}>
-          <h1 style={{
-            color: "white",
-            margin: 0,
-          }}>The amazing world of McFarlane.</h1>
-          <p style={{
-            color: "white",
-            fontSize: "clamp(0.7em, 1.5vw, 16px)",
-            margin: "1rem 0 2rem",
-          }}>Buy exclusive McFarlane NFTs.</p>
-
-          <Button onClick={ toggleModal } className="secondary-btn">
-            How to Buy
-          </Button>
-        </div>
-      </Banner>
+      <PreSaleBanner auction={heroAuction} />
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Col style={{ width: '100%', marginTop: 10 }}>
-            {liveAuctions.length >= 1 && (
-              <Row>
-                <Tabs>
-                  <TabPane>
-                    <h2>Live Auctions</h2>
+            {liveAuctions.length > 1 && (<Row>
+              <Tabs activeKey={activeKey}
+                  onTabClick={key => setActiveKey(key as LiveAuctionViewState)}>
+                  <TabPane
+                    tab={<span className="tab-title">Live Auctions</span>}
+                    key={LiveAuctionViewState.All}
+                  >
                     {liveAuctionsView}
                   </TabPane>
-                </Tabs>
-              </Row>
-            )}
-            {auctionsEnded.length > 0 && (
-              <Row>
-                  <Tabs>
-                    <TabPane>
-                      <h2>Ended Auctions</h2>
-                      {endedAuctions}
+                  {auctionsEnded.length > 0 && (
+                  <TabPane
+                    tab={<span className="tab-title">Ended Auctions</span>}
+                    key={LiveAuctionViewState.Ended}
+                  >
+                    {endedAuctions}
+                  </TabPane>
+                  )}
+                  {
+                    // Show all participated live and ended auctions except hero auction
+                  }
+                  {connected && (
+                    <TabPane
+                      tab={<span className="tab-title">Participated</span>}
+                      key={LiveAuctionViewState.Participated}
+                    >
+                      {liveAuctionsView}
                     </TabPane>
-                  </Tabs>
-                <br />
-              </Row>
-            )}
+                  )}
+              </Tabs>
+            </Row>)}
           </Col>
         </Content>
       </Layout>
-      <ModalHowToBuy
-        isOpen={isModalOpen}
-        onClose={toggleModal}
-      />
     </Layout>
   );
 };
