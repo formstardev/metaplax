@@ -8,27 +8,23 @@ import { AppBar } from '../AppBar';
 
 const { Header, Content } = Layout;
 
+
 export const AppLayout = React.memo((props: any) => {
   // const { width } = useWindowDimensions();
 
   return (
     <>
       <Layout id={'main-layout'}>
-        <span id={'main-bg'}></span>
-        <span id={'bg-gradient'}></span>
+        <div id={'main-bg'}></div>
         <Header className="App-Bar">
           <AppBar />
         </Header>
-        <Layout id={'width-layout'}>
-          <Content
-            style={{
-              overflow: 'scroll',
-              padding: '30px 2vw',
-            }}
-          >
-            {props.children}
-          </Content>
-        </Layout>
+        <Content style={{
+          overflow: "scroll",
+          padding: "30px 2vw",
+        }}>
+          {props.children}
+        </Content>
       </Layout>
     </>
   );

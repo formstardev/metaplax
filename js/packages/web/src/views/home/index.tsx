@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Layout, Row, Col, Tabs, Button } from 'antd';
 import Masonry from 'react-masonry-css';
+import { ModalHowToBuy } from "../../components/ModalHowToBuy";
 
 import { PreSaleBanner } from '../../components/PreSaleBanner';
 import { AuctionViewState, useAuctions } from '../../hooks';
@@ -154,7 +155,7 @@ export const HomeView = () => {
         </>
       )}
       {/* <PreSaleBanner auction={heroAuction} /> */}
-      <Banner src={'/main-banner.svg'} useBannerBg={true}>
+      <Banner src={'/main-banner.svg'}>
         <div
           style={{
             height: '100%',
@@ -183,35 +184,33 @@ export const HomeView = () => {
           >
             Buy exclusive McFarlane NFTs.
           </p>
-          <Button
-            onClick={() => console.log('HOW TO BUY')}
-            className="secondary-btn"
-          >
-            How to Buy
-          </Button>
+          <ModalHowToBuy className="secondary-btn" />
         </div>
       </Banner>
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Col style={{ width: '100%', marginTop: 10 }}>
-            <Row>
-              <Tabs>
-                <TabPane
-                  tab={
-                    <>
-                      <span className={'live'}></span> Live
-                    </>
-                  }
-                  key={1}
-                  active={true}
-                >
-                  {liveAuctionsView}
-                </TabPane>
-                <TabPane tab={'Ended'} key={2}>
-                  {endedAuctions}
-                </TabPane>
-              </Tabs>
-            </Row>
+            {liveAuctions.length >= 1 && (
+              <Row>
+                <Tabs>
+                  <TabPane>
+                    <h2>Live Auctions</h2>
+                    {liveAuctionsView}
+                  </TabPane>
+                </Tabs>
+              </Row>
+            )}
+            {auctionsEnded.length > 0 && (
+              <Row>
+                <Tabs>
+                  <TabPane>
+                    <h2>Ended Auctions</h2>
+                    {endedAuctions}
+                  </TabPane>
+                </Tabs>
+                <br />
+              </Row>
+            )}
           </Col>
         </Content>
       </Layout>

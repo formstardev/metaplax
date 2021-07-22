@@ -7,6 +7,7 @@ import { Notifications } from '../Notifications';
 import useWindowDimensions from '../../utils/layout';
 import { MenuOutlined } from '@ant-design/icons';
 import { useMeta } from '../../contexts';
+import {ModalHowToBuy} from "../ModalHowToBuy";
 
 const getDefaultLinkActions = (connected: boolean) => {
   return [
@@ -106,7 +107,6 @@ export const LogoLink = () => {
 
 export const AppBar = () => {
   const { connected } = useWallet();
-
   return (
     <>
       <div className="app-left">
@@ -115,7 +115,8 @@ export const AppBar = () => {
         <MetaplexMenu />
       </div>
       <div className="app-right">
-        {!connected && <ConnectButton type="primary" />}
+        <ModalHowToBuy className={'modal-button-default'} />
+        {!connected && <ConnectButton type="primary" className="connector" />}
         {connected && (
           <>
             <UserActions />
