@@ -21,7 +21,6 @@ use {
 pub fn issue_claim_bid<'a>(
     auction_program: AccountInfo<'a>,
     auction: AccountInfo<'a>,
-    auction_extended: AccountInfo<'a>,
     accept_payment: AccountInfo<'a>,
     authority: AccountInfo<'a>,
     bidder: AccountInfo<'a>,
@@ -47,7 +46,6 @@ pub fn issue_claim_bid<'a>(
             auction_program,
             authority,
             auction,
-            auction_extended,
             clock,
             token_mint,
             bidder,
@@ -69,7 +67,6 @@ pub fn process_claim_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
     let bidder_pot_info = next_account_info(account_info_iter)?;
     let auction_manager_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
-    let auction_extended_info = next_account_info(account_info_iter)?;
     let bidder_info = next_account_info(account_info_iter)?;
     let token_mint_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
@@ -83,7 +80,6 @@ pub fn process_claim_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
     let auction = AuctionData::from_account_info(auction_info)?;
 
     assert_owned_by(auction_info, &store.auction_program)?;
-    assert_owned_by(auction_extended_info, &store.auction_program)?;
     assert_owned_by(auction_manager_info, program_id)?;
     assert_owned_by(accept_payment_info, &spl_token::id())?;
     assert_owned_by(bidder_pot_token_info, &spl_token::id())?;
@@ -144,7 +140,6 @@ pub fn process_claim_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
     issue_claim_bid(
         auction_program_info.clone(),
         auction_info.clone(),
-        auction_extended_info.clone(),
         accept_payment_info.clone(),
         auction_manager_info.clone(),
         bidder_info.clone(),

@@ -73,7 +73,6 @@ pub fn create_auction(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     args: CreateAuctionArgs,
-    instant_sale_price: Option<u64>,
 ) -> ProgramResult {
     msg!("+ Processing CreateAuction");
     let accounts = parse_accounts(program_id, accounts)?;
@@ -157,7 +156,6 @@ pub fn create_auction(
         total_uncancelled_bids: 0,
         tick_size: args.tick_size,
         gap_tick_size_percentage: args.gap_tick_size_percentage,
-        instant_sale_price: instant_sale_price,
     }
     .serialize(&mut *accounts.auction_extended.data.borrow_mut())?;
 
