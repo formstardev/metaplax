@@ -70,7 +70,6 @@ async fn setup_auction(
         &resource,
         &mint_keypair.pubkey(),
         max_winners,
-        "Some name",
     )
     .await
     .unwrap();

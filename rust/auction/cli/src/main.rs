@@ -24,12 +24,6 @@ use {
 const PROGRAM_PUBKEY: &str = "HLGetPpEUaagthEtF4px9S24hwJrwz3qvgRZxkWTw4ei";
 const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 
-fn string_to_array(value: &str) -> [u8; 32] {
-    let mut result: [u8; 32] = Default::default();
-    &result[0..value.len()].copy_from_slice(value.as_bytes());
-    result
-}
-
 fn create_auction(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
     use spl_auction::{
         instruction,
@@ -63,17 +57,13 @@ fn create_auction(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
         }
     });
 
-    // Optional auction name
-    let name: &str = app_matches.value_of("name").unwrap_or("");
-    
     println!(
         "Creating Auction:\n\
         - Auction: {}\n\
         - Payer: {}\n\
         - Mint: {}\n\
         - Resource: {}\n\
-        - Salt: {}\n\
-        - Name: {}\n\n\
+        - Salt: {}\n\n\
         Use the salt when revealing the price.
     ",
         auction_pubkey,
@@ -81,10 +71,7 @@ fn create_auction(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
         mint.pubkey(),
         resource,
         salt,
-        name,
     );
-
-    let name = string_to_array(name);
 
     let instructions = [
         // Create a new mint to test this auction with.
@@ -131,7 +118,6 @@ fn create_auction(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
                 price_floor: floor.unwrap_or(PriceFloor::None([0; 32])),
                 gap_tick_size_percentage: Some(0),
                 tick_size: Some(0),
-                name,
             },
         ),
     ];
@@ -617,13 +603,6 @@ fn main() {
                         .required(false)
                         .takes_value(false)
                         .help("If set, hide the minimum required bid price until the end of the auction."),
-                )
-                .arg(
-                    Arg::with_name("name")
-                        .long("name")
-                        .value_name("STRING")
-                        .takes_value(true)
-                        .help("Optional auction name (up to 32 characters long)."),
                 )
         )
         .subcommand(
