@@ -1,6 +1,7 @@
 import React from 'react';
 import { Col, Row, Button, Skeleton } from 'antd';
 
+import './index.less';
 import { AuctionView, useArt } from '../../hooks';
 import { ArtContent } from '../ArtContent';
 import { AuctionCard } from '../AuctionCard';

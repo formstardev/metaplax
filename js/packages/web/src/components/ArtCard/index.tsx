@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardProps, Button, Badge } from 'antd';
 import { MetadataCategory } from '@oyster/common';
 import { ArtContent } from './../ArtContent';
+import './index.less';
 import { useArt } from '../../hooks';
 import { PublicKey } from '@solana/web3.js';
 import { Artist, ArtType } from '../../types';
