@@ -7,8 +7,9 @@
 }
 
 .auction-image {
-  width: 100%;
-  aspect-ratio: 1 / 1;
+  margin-left: -30px;
+  width: 300px;
+  height: 300px;
   @media (max-width: 1100px) {
     margin-left: 0;
   }
@@ -40,23 +41,25 @@
   display: inline-block;
 }
 
-.auction-render-card {
+.art-card {
   min-width: 200px;
   filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.1));
-  border-radius: 12px;
+  border-radius: 8px;
   // border: 0px;
   overflow: hidden;
   margin-bottom: 20px;
 
   .ant-card-body {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
     padding: 0;
     text-align: left;
 
-    background: #1E1E1E;
-    border-radius: 0;
+    /* gradients/metal */
+    background: #212121;
+    // box-shadow: inset 0px 4px 20px rgba(0, 0, 0, 0.3);
+    border-radius: 0px 0px 8px 8px;
   }
 
   .bids {
@@ -77,6 +80,13 @@
     display: none;
   }
 
+  .usd {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 8px;
+    min-height: 44px;
+  }
+
   .ant-card-meta-title {
     font-size: 20px;
     font-weight: 600;
@@ -87,7 +97,8 @@
 
   .ant-avatar.ant-avatar-circle,
   h4 {
-    margin-right: 8px;
+    margin-left: 24px;
+    margin-bottom: 8px;
   }
 
   .ant-card-meta-description {
@@ -103,31 +114,6 @@
 
   .ant-image {
     display: block;
-  }
-  .card-art-info{
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 0 0 12px 12px;
-    padding: 16px;
-    width: 100%;
-    .card-artist-info{
-      margin-bottom: 16px;
-      .artist-name {
-        font-size: 14px;
-      }
-    }
-    .art-name {
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      overflow: hidden;
-      margin-top: 20px;
-      font-size: 24px;
-    }
-    .art-auction-info{
-      margin-top: 32px;
-    }
-  }
-  .card-bid-info {
-    padding: 16px;
   }
 }
 
