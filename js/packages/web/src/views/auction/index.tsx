@@ -1,8 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Row, Col, Button, Skeleton, Carousel } from 'antd';
 import { AuctionCard } from '../../components/AuctionCard';
-import { Connection, PublicKey } from '@solana/web3.js';
 import {
   AuctionView as Auction,
   AuctionViewItem,
@@ -14,12 +13,12 @@ import {
 } from '../../hooks';
 import { ArtContent } from '../../components/ArtContent';
 
+import './index.less';
 import {
   formatTokenAmount,
   Identicon,
   MetaplexModal,
   shortenAddress,
-  useConnection,
   useConnectionConfig,
   fromLamports,
   useMint,
@@ -27,11 +26,10 @@ import {
   AuctionState,
 } from '@oyster/common';
 import { MintInfo } from '@solana/spl-token';
-import { getHandleAndRegistryKey } from '@solana/spl-name-service';
 import useWindowDimensions from '../../utils/layout';
 import { CheckOutlined } from '@ant-design/icons';
 import { useMemo } from 'react';
-import { ArtType } from '../../types';
+import { AppLayout } from '../../components/Layout';
 
 export const AuctionItem = ({
   item,
@@ -80,14 +78,7 @@ export const AuctionView = () => {
   const art = useArt(auction?.thumbnail.metadata.pubkey);
   const { ref, data } = useExtendedArt(auction?.thumbnail.metadata.pubkey);
   const creators = useCreators(auction);
-  let edition = ''
-  if (art.type === ArtType.NFT) {
-    edition = 'Unique';
-  } else if (art.type === ArtType.Master) {
-    edition = 'NFT 0';
-  } else if (art.type === ArtType.Print) {
-    edition = `${art.edition} of ${art.supply}`;
-  }
+  const edition = '1 of 1';
   const nftCount = auction?.items.flat().length;
   const winnerCount = auction?.items.length;
 
@@ -120,7 +111,7 @@ export const AuctionView = () => {
   });
 
   return (
-    <>
+    <AppLayout>
       <Row justify="space-around" ref={ref}>
         <Col span={24} md={12} className="pr-4">
           <div className="auction-view" style={{ minHeight: 300 }}>
@@ -172,8 +163,7 @@ export const AuctionView = () => {
           <Row gutter={[50, 0]} style={{ marginRight: 'unset' }}>
             <Col>
               <h6>Edition</h6>
-              {!auction && <Skeleton title={{ width: "100%" }} paragraph={{ rows: 0 }} />}
-              {auction && <p className="auction-art-edition">{(auction?.items.length || 0) > 1 ? 'Multiple' : edition}</p>}
+              <p>{(auction?.items.length || 0) > 1 ? 'Multiple' : edition}</p>
             </Col>
 
             <Col>
@@ -207,37 +197,21 @@ export const AuctionView = () => {
           <AuctionBids auctionView={auction} />
         </Col>
       </Row>
-    </>
+    </AppLayout>
   );
 };
 
-const BidLine = (props: { bid: any; index: number; mint?: MintInfo, isCancelled?: boolean, isActive?: boolean }) => {
+const BidLine = (props: {
+  bid: any;
+  index: number;
+  mint?: MintInfo;
+  isCancelled?: boolean;
+  isActive?: boolean;
+}) => {
   const { bid, index, mint, isCancelled, isActive } = props;
   const { wallet } = useWallet();
   const bidder = bid.info.bidderPubkey.toBase58();
   const isme = wallet?.publicKey?.toBase58() === bidder;
-
-  // Get Twitter Handle from address
-  const connection = useConnection();
-  const [bidderTwitterHandle, setBidderTwitterHandle] = useState('');
-  useEffect(() => {
-    const getTwitterHandle = async (
-      connection: Connection,
-      bidder: PublicKey,
-    ): Promise<string | undefined> => {
-      try {
-        const [twitterHandle] = await getHandleAndRegistryKey(
-          connection,
-          bidder,
-        );
-        setBidderTwitterHandle(twitterHandle);
-      } catch (err) {
-        console.warn(`err`);
-        return undefined;
-      }
-    };
-    getTwitterHandle(connection, bidder);
-  }, [bidderTwitterHandle]);
 
   return (
     <Row
@@ -246,7 +220,7 @@ const BidLine = (props: { bid: any; index: number; mint?: MintInfo, isCancelled?
         alignItems: 'center',
         padding: '3px 0',
         position: 'relative',
-        opacity: isActive ? undefined: 0.5,
+        opacity: isActive ? undefined : 0.5,
         ...(isme
           ? {
               backgroundColor: '#ffffff21',
@@ -254,7 +228,19 @@ const BidLine = (props: { bid: any; index: number; mint?: MintInfo, isCancelled?
           : {}),
       }}
     >
-      {isCancelled && <div style={{ position: 'absolute', left: 0, width: '100%', height: 1, background: 'grey', top: 'calc(50% - 1px)', zIndex: 2 }}/>}
+      {isCancelled && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            width: '100%',
+            height: 1,
+            background: 'grey',
+            top: 'calc(50% - 1px)',
+            zIndex: 2,
+          }}
+        />
+      )}
       <Col
         span={2}
         style={{
@@ -262,20 +248,22 @@ const BidLine = (props: { bid: any; index: number; mint?: MintInfo, isCancelled?
           paddingRight: 10,
         }}
       >
-        {!isCancelled && <div
-          style={{
-            opacity: 0.8,
-            fontWeight: 700,
-          }}
-        >
-          {isme && (
-            <>
-              <CheckOutlined />
-              &nbsp;
-            </>
-          )}
-          {index + 1}
-        </div>}
+        {!isCancelled && (
+          <div
+            style={{
+              opacity: 0.8,
+              fontWeight: 700,
+            }}
+          >
+            {isme && (
+              <>
+                <CheckOutlined />
+                &nbsp;
+              </>
+            )}
+            {index + 1}
+          </div>
+        )}
       </Col>
       <Col span={16}>
         <Row>
@@ -288,15 +276,7 @@ const BidLine = (props: { bid: any; index: number; mint?: MintInfo, isCancelled?
             }}
             address={bidder}
           />{' '}
-          {bidderTwitterHandle ? (
-            <a
-              target="_blank"
-              title={shortenAddress(bidder)}
-              href={`https://twitter.com/${bidderTwitterHandle}`}
-            >{`@${bidderTwitterHandle}`}</a>
-          ) : (
-            shortenAddress(bidder)
-          )}
+          {shortenAddress(bidder)}
           {isme && <span style={{ color: '#6479f6' }}>&nbsp;(you)</span>}
         </Row>
       </Col>
@@ -324,23 +304,29 @@ export const AuctionBids = ({
   const winnersCount = auctionView?.auction.info.bidState.max.toNumber() || 0;
   const activeBids = auctionView?.auction.info.bidState.bids || [];
   const activeBidders = useMemo(() => {
-    return new Set(activeBids.map(b => b.key.toBase58()))
+    return new Set(activeBids.map(b => b.key.toBase58()));
   }, [activeBids]);
 
-  const auctionState = auctionView ? auctionView.auction.info.state : AuctionState.Created;
+  const auctionState = auctionView
+    ? auctionView.auction.info.state
+    : AuctionState.Created;
   const bidLines = useMemo(() => {
     let activeBidIndex = 0;
     return bids.map((bid, index) => {
-      let isCancelled = (index < winnersCount  && !!bid.info.cancelled) ||
+      let isCancelled =
+        (index < winnersCount && !!bid.info.cancelled) ||
         (auctionState !== AuctionState.Ended && !!bid.info.cancelled);
 
-      let line = <BidLine
-        bid={bid}
-        index={activeBidIndex}
-        key={index}
-        mint={mint}
-        isCancelled={isCancelled}
-        isActive={!bid.info.cancelled} />;
+      let line = (
+        <BidLine
+          bid={bid}
+          index={activeBidIndex}
+          key={index}
+          mint={mint}
+          isCancelled={isCancelled}
+          isActive={!bid.info.cancelled}
+        />
+      );
 
       if (!isCancelled) {
         activeBidIndex++;

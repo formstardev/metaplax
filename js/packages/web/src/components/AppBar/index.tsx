@@ -1,11 +1,27 @@
 import React, { useMemo } from 'react';
+import './index.less';
 import { Link } from 'react-router-dom';
 import { Button, Dropdown, Menu } from 'antd';
-import { ConnectButton, CurrentUserBadge, useWallet } from '@oyster/common';
+import { ConnectButton, useWallet } from '@oyster/common';
 import { Notifications } from '../Notifications';
 import useWindowDimensions from '../../utils/layout';
 import { MenuOutlined } from '@ant-design/icons';
 import { useMeta } from '../../contexts';
+import { CurrentUserBadge } from '../CurrentUserBadge';
+
+const getDefaultLinkActions = (connected: boolean) => {
+  return [
+    <Link to={`/artworks`} key={0}>
+      <Button className="app-btn">{connected ? 'My Items' : 'Artworks'}</Button>
+    </Link>,
+    <Link to={`/artists`} key={1}>
+      <Button className="app-btn">Creators</Button>
+    </Link>,
+    <Link to={`/artistAlley`} key={2}>
+      <Button className="app-btn">Artist Alley</Button>
+    </Link>,
+  ];
+};
 
 const UserActions = () => {
   const { wallet } = useWallet();
@@ -49,17 +65,7 @@ const DefaultActions = ({ vertical = false }: { vertical?: boolean }) => {
         flexDirection: vertical ? 'column' : 'row',
       }}
     >
-      <Link to={`/`}>
-        <Button className="app-btn">Explore</Button>
-      </Link>
-      <Link to={`/artworks`}>
-        <Button className="app-btn">
-          {connected ? 'My Items' : 'Artworks'}
-        </Button>
-      </Link>
-      <Link to={`/artists`}>
-        <Button className="app-btn">Creators</Button>
-      </Link>
+      {getDefaultLinkActions(connected)}
     </div>
   );
 };
@@ -77,23 +83,9 @@ const MetaplexMenu = () => {
           trigger={['click']}
           overlay={
             <Menu>
-              <Menu.Item>
-                <Link to={`/`}>
-                  <Button className="app-btn">Explore</Button>
-                </Link>
-              </Menu.Item>
-              <Menu.Item>
-                <Link to={`/artworks`}>
-                  <Button className="app-btn">
-                    {connected ? 'My Items' : 'Artworks'}
-                  </Button>
-                </Link>
-              </Menu.Item>
-              <Menu.Item>
-                <Link to={`/artists`}>
-                  <Button className="app-btn">Creators</Button>
-                </Link>
-              </Menu.Item>
+              {getDefaultLinkActions(connected).map((item, idx) => (
+                <Menu.Item key={idx}>{item}</Menu.Item>
+              ))}
             </Menu>
           }
         >
@@ -105,27 +97,38 @@ const MetaplexMenu = () => {
   return <DefaultActions />;
 };
 
+export const LogoLink = () => {
+  return (
+    <Link to={`/`}>
+      <img src={'/mcfarlane-logo.svg'} />
+    </Link>
+  );
+};
+
 export const AppBar = () => {
   const { connected } = useWallet();
 
   return (
     <>
-      <div className="app-left app-bar-box">
-        <Notifications />
-        <div className="divider" />
+      <div className="app-left">
+        <LogoLink />
+        &nbsp;&nbsp;&nbsp;
         <MetaplexMenu />
       </div>
-      {!connected && <ConnectButton type="primary" />}
-      {connected && (
-        <div className="app-right app-bar-box">
-          <UserActions />
-          <CurrentUserBadge
-            showBalance={false}
-            showAddress={false}
-            iconSize={24}
-          />
-        </div>
-      )}
+      <div className="app-right">
+        {!connected && <ConnectButton type="primary" />}
+        {connected && (
+          <>
+            <UserActions />
+            <Notifications />
+            <CurrentUserBadge
+              showBalance={false}
+              showAddress
+              iconSize={24}
+            />
+          </>
+        )}
+      </div>
     </>
   );
 };
