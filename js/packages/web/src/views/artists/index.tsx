@@ -45,10 +45,12 @@ export const ArtistsView = () => {
   );
 
   return (
-    <Layout style={{ margin: 0, marginTop: 30 }}>
-      <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <Col style={{ width: '100%', marginTop: 10 }}>{artistGrid}</Col>
-      </Content>
-    </Layout>
+    <AppLayout>
+      <Layout style={{ margin: 0, marginTop: 30 }}>
+        <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
+          <Col style={{ width: '100%', marginTop: 10 }}>{artistGrid}</Col>
+        </Content>
+      </Layout>
+    </AppLayout>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Layout, Row, Col, Tabs, Button } from 'antd';
 import Masonry from 'react-masonry-css';
+import { ModalHowToBuy } from "../../components/ModalHowToBuy";
 
 import { PreSaleBanner } from '../../components/PreSaleBanner';
 import { AuctionViewState, useAuctions } from '../../hooks';
@@ -61,13 +62,13 @@ export const HomeView = () => {
     >
       {!isLoading
         ? liveAuctions.map((m, idx) => {
-            const id = m.auction.pubkey.toBase58();
-            return (
-              <Link to={`/auction/${id}`} key={idx}>
-                <AuctionRenderCard key={id} auctionView={m} />
-              </Link>
-            );
-          })
+          const id = m.auction.pubkey.toBase58();
+          return (
+            <Link to={`/auction/${id}`} key={idx}>
+              <AuctionRenderCard key={id} auctionView={m} />
+            </Link>
+          );
+        })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -79,19 +80,19 @@ export const HomeView = () => {
     >
       {!isLoading
         ? auctionsEnded
-            .filter((m, idx) => idx < 10)
-            .map((m, idx) => {
-              if (m === heroAuction) {
-                return;
-              }
+          .filter((m, idx) => idx < 10)
+          .map((m, idx) => {
+            if (m === heroAuction) {
+              return;
+            }
 
-              const id = m.auction.pubkey.toBase58();
-              return (
-                <Link to={`/auction/${id}`} key={idx}>
-                  <AuctionRenderCard key={id} auctionView={m} />
-                </Link>
-              );
-            })
+            const id = m.auction.pubkey.toBase58();
+            return (
+              <Link to={`/auction/${id}`} key={idx}>
+                <AuctionRenderCard key={id} auctionView={m} />
+              </Link>
+            );
+          })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -155,6 +156,7 @@ export const HomeView = () => {
       )}
       {/* <PreSaleBanner auction={heroAuction} /> */}
       <Banner src={'/main-banner.svg'} useBannerBg={true}>
+
         <div
           style={{
             height: '100%',
@@ -183,12 +185,7 @@ export const HomeView = () => {
           >
             Buy exclusive McFarlane NFTs.
           </p>
-          <Button
-            onClick={() => console.log('HOW TO BUY')}
-            className="secondary-btn"
-          >
-            How to Buy
-          </Button>
+          <ModalHowToBuy className={'secondary-btn'} />
         </div>
       </Banner>
       <Layout>
