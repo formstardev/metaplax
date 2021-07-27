@@ -7,22 +7,18 @@ import './index.less';
 interface IAmountLabel {
   amount: number | string;
   displayUSD?: boolean;
-  displaySOL?: boolean;
   title?: string;
   style?: object;
   containerStyle?: object;
-  symbolStyle?: object;
 }
 
 export const AmountLabel = (props: IAmountLabel) => {
   const {
     amount: _amount,
     displayUSD = true,
-    displaySOL = false,
     title = '',
     style = {},
     containerStyle = {},
-    symbolStyle = {},
   } = props;
   const amount = typeof _amount === 'string' ? parseFloat(_amount) : _amount;
 
@@ -43,8 +39,8 @@ export const AmountLabel = (props: IAmountLabel) => {
           style={style}
           className="create-statistic"
           title={title || ''}
-          value={`${amount}${displaySOL && ' SOL'}`}
-          prefix={<img style={symbolStyle} src={'/sol-circle.svg'} />}
+          value={amount}
+          prefix={<img src={'/sol-circle.svg'} />}
         />
       )}
       {displayUSD && (

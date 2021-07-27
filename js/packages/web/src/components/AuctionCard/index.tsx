@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Col, Button, InputNumber, Spin, Row, Skeleton } from 'antd';
+import { Col, Button, InputNumber, Spin } from 'antd';
 import { MemoryRouter, Route, Redirect, Link } from 'react-router-dom';
 
 import './index.less';
@@ -18,9 +18,9 @@ import {
   getAuctionExtended,
   programIds,
 } from '@oyster/common';
-import { AuctionView, useBidsForAuction, useUserBalance } from '../../hooks';
+import { AuctionView, useUserBalance } from '../../hooks';
 import { sendPlaceBid } from '../../actions/sendPlaceBid';
-import { AuctionCountdown, AuctionNumbers } from './../AuctionNumbers';
+import { AuctionNumbers } from './../AuctionNumbers';
 import {
   sendRedeemBid,
   eligibleForParticipationPrizeGivenWinningIndex,
@@ -32,7 +32,6 @@ import { QUOTE_MINT } from '../../constants';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { useMeta } from '../../contexts';
 import moment from 'moment';
-import { AmountLabel } from '../AmountLabel';
 
 const { useWallet } = contexts.Wallet;
 
@@ -117,6 +116,7 @@ export const AuctionCard = ({
   const connection = useConnection();
   const { wallet, connected, connect } = useWallet();
   const mintInfo = useMint(auctionView.auction.info.tokenMint);
+
   const [value, setValue] = useState<number>();
   const [loading, setLoading] = useState<boolean>(false);
   const [showBidModal, setShowBidModal] = useState<boolean>(false);
@@ -165,120 +165,94 @@ export const AuctionCard = ({
 
   return (
     <div className="auction-container" style={style}>
-      <div className={'time-info'}>
-        <span>Auction ends in</span>
-        <div>
-          <AuctionCountdown auctionView={auctionView} labels={false} />
-        </div>
-      </div>
-      <div className={'bid-info'}>
-        <Row style={{ alignItems: 'center' }}>
-          <Col span={24} md={12}>
-            <AuctionNumbers
-              auctionView={auctionView}
-              showAsRow={true}
-              hideCountdown={true}
-              displaySOL={true}
-            />
-          </Col>
-          <Col span={24} md={12}>
-            <div className={'flex-right'}>
-              <div>
-                <Button>How to buy</Button>
-              </div>
-            </div>
-          </Col>
-        </Row>
-        <Col>
-          {!hideDefaultAction && <br />}
-          {showRedemptionIssue && (
-            <span>
-              There was an issue redeeming or refunding your bid. Please try
-              again.
-            </span>
-          )}
-          {!hideDefaultAction && connected && auctionView.auction.info.ended() && (
-            <Button
-              type="primary"
-              size="large"
-              className="action-btn"
-              disabled={
-                !myPayingAccount ||
-                (!auctionView.myBidderMetadata &&
-                  auctionView.auctionManager.info.authority.toBase58() !=
-                    wallet?.publicKey?.toBase58()) ||
-                loading ||
-                !!auctionView.items.find(i => i.find(it => !it.metadata))
+      <Col>
+        <AuctionNumbers auctionView={auctionView} />
+        <br />
+        {showRedemptionIssue && (
+          <span>
+            There was an issue redeeming or refunding your bid. Please try
+            again.
+          </span>
+        )}
+        {!hideDefaultAction && connected && auctionView.auction.info.ended() && (
+          <Button
+            type="primary"
+            size="large"
+            className="action-btn"
+            disabled={
+              !myPayingAccount ||
+              (!auctionView.myBidderMetadata &&
+                auctionView.auctionManager.info.authority.toBase58() !=
+                  wallet?.publicKey?.toBase58()) ||
+              loading ||
+              !!auctionView.items.find(i => i.find(it => !it.metadata))
+            }
+            onClick={async () => {
+              setLoading(true);
+              setShowRedemptionIssue(false);
+              try {
+                if (eligibleForAnything)
+                  await sendRedeemBid(
+                    connection,
+                    wallet,
+                    myPayingAccount.pubkey,
+                    auctionView,
+                    accountByMint,
+                  ).then(() => setShowRedeemedBidModal(true));
+                else
+                  await sendCancelBid(
+                    connection,
+                    wallet,
+                    myPayingAccount.pubkey,
+                    auctionView,
+                    accountByMint,
+                  );
+              } catch (e) {
+                console.error(e);
+                setShowRedemptionIssue(true);
               }
-              onClick={async () => {
-                setLoading(true);
-                setShowRedemptionIssue(false);
-                try {
-                  if (eligibleForAnything)
-                    await sendRedeemBid(
-                      connection,
-                      wallet,
-                      myPayingAccount.pubkey,
-                      auctionView,
-                      accountByMint,
-                    ).then(() => setShowRedeemedBidModal(true));
-                  else
-                    await sendCancelBid(
-                      connection,
-                      wallet,
-                      myPayingAccount.pubkey,
-                      auctionView,
-                      accountByMint,
-                    );
-                } catch (e) {
-                  console.error(e);
-                  setShowRedemptionIssue(true);
-                }
-                setLoading(false);
-              }}
-              style={{ marginTop: 20 }}
-            >
-              {loading ||
-              auctionView.items.find(i => i.find(it => !it.metadata)) ||
-              !myPayingAccount ? (
-                <Spin />
-              ) : eligibleForAnything ? (
-                'Redeem bid'
-              ) : (
-                'Refund bid'
-              )}
-            </Button>
-          )}
-
-          {!hideDefaultAction &&
-            connected &&
-            !auctionView.auction.info.ended() && (
-              <Button
-                type="primary"
-                size="large"
-                className="action-btn"
-                disabled={loading}
-                onClick={() => setShowBidModal(true)}
-                style={{ marginTop: 20 }}
-              >
-                {loading ? <Spin /> : 'Place bid'}
-              </Button>
+              setLoading(false);
+            }}
+            style={{ marginTop: 20 }}
+          >
+            {loading ||
+            auctionView.items.find(i => i.find(it => !it.metadata)) ||
+            !myPayingAccount ? (
+              <Spin />
+            ) : eligibleForAnything ? (
+              'Redeem bid'
+            ) : (
+              'Refund bid'
             )}
+          </Button>
+        )}
 
-          {!hideDefaultAction && !connected && (
-            <Button
-              type="primary"
-              size="large"
-              className="action-btn"
-              onClick={connect}
-              style={{ marginTop: 20 }}
-            >
-              Connect wallet to place bid
-            </Button>
-          )}
-          {action}
-        </Col>
-      </div>
+        {!hideDefaultAction && connected && !auctionView.auction.info.ended() && (
+          <Button
+            type="primary"
+            size="large"
+            className="action-btn"
+            disabled={loading}
+            onClick={() => setShowBidModal(true)}
+            style={{ marginTop: 20 }}
+          >
+            {loading ? <Spin /> : 'Place bid'}
+          </Button>
+        )}
+
+        {!hideDefaultAction && !connected && (
+          <Button
+            type="primary"
+            size="large"
+            className="action-btn"
+            onClick={connect}
+            style={{ marginTop: 20 }}
+          >
+            Connect wallet to place bid
+          </Button>
+        )}
+        {action}
+      </Col>
 
       <MetaplexOverlay visible={showBidPlaced}>
         <Confetti />
