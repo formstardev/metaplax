@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Row, Col } from 'antd';
 
 import './../AuctionCard/index.less';
-import './index.less';
 import {
   formatTokenAmount,
   useMint,
@@ -25,18 +24,13 @@ export const AuctionCountdown = (props: {
     return <Countdown state={state} />;
   }
   return (
-    <Col span={ended ? 24 : 10}>
+    <Col span={ended ? 24 : 12}>
       <LabeledCountdown state={state} />
     </Col>
   );
 };
 
-export const AuctionNumbers = (props: {
-  auctionView: AuctionView;
-  hideCountdown?: boolean;
-  showAsRow?: boolean;
-  displaySOL?: boolean;
-}) => {
+export const AuctionNumbers = (props: { auctionView: AuctionView }) => {
   const { auctionView } = props;
   const state = useAuctionCountdown(auctionView);
   const bids = useBidsForAuction(auctionView.auction.pubkey);
@@ -60,11 +54,10 @@ export const AuctionNumbers = (props: {
     <div style={{ minWidth: 350 }}>
       <Row>
         {!ended && (
-          <Col span={14}>
+          <Col span={12}>
             {(isUpcoming || bids.length === 0) && (
               <AmountLabel
-                displaySOL={props.displaySOL}
-                style={{ marginBottom: props.showAsRow ? 0 : 10 }}
+                style={{ marginBottom: 10 }}
                 containerStyle={{ flexDirection: 'column' }}
                 title="Starting bid"
                 amount={fromLamports(
@@ -75,20 +68,15 @@ export const AuctionNumbers = (props: {
             )}
             {isStarted && bids.length > 0 && (
               <AmountLabel
-                displaySOL={props.displaySOL}
-                style={{ marginBottom: props.showAsRow ? 0 : 10 }}
-                containerStyle={{
-                  flexDirection: props.showAsRow ? ' row' : 'column',
-                }}
+                style={{ marginBottom: 10 }}
+                containerStyle={{ flexDirection: 'column' }}
                 title="Highest bid"
                 amount={formatTokenAmount(bids[0].info.lastBid, mintInfo)}
               />
             )}
           </Col>
         )}
-        {!props.hideCountdown ? (
-          <AuctionCountdown auctionView={auctionView} labels={true} />
-        ) : null}
+        <AuctionCountdown auctionView={auctionView} labels={true} />
       </Row>
     </div>
   );
@@ -111,10 +99,7 @@ const Countdown = ({ state }: { state?: CountdownState }) => {
     };
   }
   return (
-    <Row
-      style={{ width: '100%', flexWrap: 'nowrap' }}
-      className={'no-label-cd'}
-    >
+    <Row style={{ width: '100%', flexWrap: 'nowrap' }}>
       {localState.days > 0 && (
         <Col>
           <div className="cd-number">
