@@ -7,19 +7,18 @@ import { Notifications } from '../Notifications';
 import useWindowDimensions from '../../utils/layout';
 import { MenuOutlined } from '@ant-design/icons';
 import { useMeta } from '../../contexts';
-import {ModalHowToBuy} from "../ModalHowToBuy";
 
 const getDefaultLinkActions = (connected: boolean) => {
   return [
-    <Link to={`/artworks`}>
-      <Button className="app-btn">{connected ? 'My Items' : 'Artworks'}</Button>
-    </Link>,
-    <Link to={`/artists`}>
-      <Button className="app-btn">Creators</Button>
-    </Link>,
-    <Link to={`/artistAlley`}>
-      <Button className="app-btn">Artist Alley</Button>
-    </Link>,
+    // <Link to={`/artworks`} key={'artworks'}>
+    //   <Button className="app-btn">{connected ? 'My Items' : 'Artworks'}</Button>
+    // </Link>,
+    // <Link to={`/artists`} key={'artists'}>
+    //   <Button className="app-btn">Creators</Button>
+    // </Link>,
+    // <Link to={`/artistAlley`} key={'artistalley'}>
+    //   <Button className="app-btn">Artist Alley</Button>
+    // </Link>,
   ];
 };
 
@@ -107,6 +106,7 @@ export const LogoLink = () => {
 
 export const AppBar = () => {
   const { connected } = useWallet();
+
   return (
     <>
       <div className="app-left">
@@ -115,7 +115,6 @@ export const AppBar = () => {
         <MetaplexMenu />
       </div>
       <div className="app-right">
-        <ModalHowToBuy className={'modal-button-default'} />
         {!connected && <ConnectButton type="primary" />}
         {connected && (
           <>

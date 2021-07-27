@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Layout, Row, Col, Tabs, Button } from 'antd';
 import Masonry from 'react-masonry-css';
-import { ModalHowToBuy } from "../../components/ModalHowToBuy";
 
 import { PreSaleBanner } from '../../components/PreSaleBanner';
 import { AuctionViewState, useAuctions } from '../../hooks';
@@ -16,7 +15,6 @@ import { programIds, useConnection, useWallet } from '@oyster/common';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { WhitelistedCreator } from '../../models/metaplex';
 import { Banner } from '../../components/Banner';
-import { AppLayout } from '../../components/Layout';
 
 const { TabPane } = Tabs;
 
@@ -24,6 +22,7 @@ const { Content } = Layout;
 export const HomeView = () => {
   const auctions = useAuctions(AuctionViewState.Live);
   const auctionsEnded = useAuctions(AuctionViewState.Ended);
+  const auctionsUpcoming = useAuctions(AuctionViewState.Upcoming);
   const { isLoading, store } = useMeta();
   const [isInitalizingStore, setIsInitalizingStore] = useState(false);
   const connection = useConnection();
@@ -62,13 +61,13 @@ export const HomeView = () => {
     >
       {!isLoading
         ? liveAuctions.map((m, idx) => {
-          const id = m.auction.pubkey.toBase58();
-          return (
-            <Link to={`/auction/${id}`} key={idx}>
-              <AuctionRenderCard key={id} auctionView={m} />
-            </Link>
-          );
-        })
+            const id = m.auction.pubkey.toBase58();
+            return (
+              <Link to={`/auction/${id}`} key={idx}>
+                <AuctionRenderCard key={id} auctionView={m} />
+              </Link>
+            );
+          })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -80,19 +79,34 @@ export const HomeView = () => {
     >
       {!isLoading
         ? auctionsEnded
-          .filter((m, idx) => idx < 10)
-          .map((m, idx) => {
-            if (m === heroAuction) {
-              return;
-            }
-
-            const id = m.auction.pubkey.toBase58();
-            return (
-              <Link to={`/auction/${id}`} key={idx}>
-                <AuctionRenderCard key={id} auctionView={m} />
-              </Link>
-            );
-          })
+            .filter((m, idx) => idx < 10)
+            .map((m, idx) => {
+              const id = m.auction.pubkey.toBase58();
+              return (
+                <Link to={`/auction/${id}`} key={idx}>
+                  <AuctionRenderCard key={id} auctionView={m} />
+                </Link>
+              );
+            })
+        : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
+    </Masonry>
+  );
+  const upcomingAuctions = (
+    <Masonry
+      breakpointCols={breakpointColumnsObj}
+      className="my-masonry-grid"
+      columnClassName="my-masonry-grid_column"
+    >
+      {!isLoading
+        ? auctionsUpcoming
+            .map((m, idx) => {
+              const id = m.auction.pubkey.toBase58();
+              return (
+                <Link to={`/auction/${id}`} key={idx}>
+                  <AuctionRenderCard key={id} auctionView={m} />
+                </Link>
+              );
+            })
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
@@ -156,7 +170,6 @@ export const HomeView = () => {
       )}
       {/* <PreSaleBanner auction={heroAuction} /> */}
       <Banner src={'/main-banner.svg'} useBannerBg={true}>
-
         <div
           style={{
             height: '100%',
@@ -185,7 +198,12 @@ export const HomeView = () => {
           >
             Buy exclusive McFarlane NFTs.
           </p>
-          <ModalHowToBuy className={'secondary-btn'} />
+          <Button
+            onClick={() => console.log('HOW TO BUY')}
+            className="secondary-btn"
+          >
+            How to Buy
+          </Button>
         </div>
       </Banner>
       <Layout>
@@ -204,7 +222,10 @@ export const HomeView = () => {
                 >
                   {liveAuctionsView}
                 </TabPane>
-                <TabPane tab={'Ended'} key={2}>
+                <TabPane tab={'Upcoming'} key={2}>
+                  {upcomingAuctions}
+                </TabPane>
+                <TabPane tab={'Ended'} key={3}>
                   {endedAuctions}
                 </TabPane>
               </Tabs>
