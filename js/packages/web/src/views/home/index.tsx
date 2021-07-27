@@ -3,9 +3,8 @@ import { Layout, Row, Col, Tabs, Button } from 'antd';
 import Masonry from 'react-masonry-css';
 
 import { PreSaleBanner } from '../../components/PreSaleBanner';
-import { AuctionViewState, useAuctions } from '../../hooks';
+import { AuctionViewState, useAuctions, AuctionView } from '../../hooks';
 
-import './index.less';
 import { AuctionRenderCard } from '../../components/AuctionRenderCard';
 import { Link, useHistory } from 'react-router-dom';
 import { CardLoader } from '../../components/MyLoader';
@@ -14,20 +13,28 @@ import BN from 'bn.js';
 import { programIds, useConnection, useWallet } from '@oyster/common';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { WhitelistedCreator } from '../../models/metaplex';
-import { Banner } from '../../components/Banner';
-import { AppLayout } from '../../components/Layout';
+
 
 const { TabPane } = Tabs;
 
 const { Content } = Layout;
+
+export enum LiveAuctionViewState {
+  All = '0',
+  Participated = '1',
+  Ended = '2',
+  Resale = '3',
+};
+
 export const HomeView = () => {
   const auctions = useAuctions(AuctionViewState.Live);
   const auctionsEnded = useAuctions(AuctionViewState.Ended);
+  const [activeKey, setActiveKey] = useState(LiveAuctionViewState.All);
   const { isLoading, store } = useMeta();
   const [isInitalizingStore, setIsInitalizingStore] = useState(false);
   const connection = useConnection();
   const history = useHistory();
-  const { wallet, connect } = useWallet();
+  const { wallet, connect, connected } = useWallet();
   const breakpointColumnsObj = {
     default: 4,
     1100: 3,
@@ -35,22 +42,54 @@ export const HomeView = () => {
     500: 1,
   };
 
+  // Check if the auction is primary sale or not
+  const checkPrimarySale = (auc:AuctionView) => {
+    var flag = 0;
+    auc.items.forEach(i => 
+      {
+        i.forEach(j => { 
+          if (j.metadata.info.primarySaleHappened == true) {
+            flag = 1;
+            return true;
+          }})
+        if (flag == 1) return true;
+      })
+      if (flag == 1) return true; else return false;
+  };
+
+  const resaleAuctions = auctions.filter(m => checkPrimarySale(m) == true);
+
+  // Removed resales from live auctions
+  const liveAuctions = auctions
+  .sort((a, b) => a.auction.info.endedAt?.sub(b.auction.info.endedAt || new BN(0)).toNumber() || 0)
+  .filter(a => !resaleAuctions.includes(a));
+
+  let items = liveAuctions;
+
+  switch (activeKey) {
+      case LiveAuctionViewState.All:
+        items = liveAuctions;
+        break;
+      case LiveAuctionViewState.Participated:
+        items = liveAuctions.concat(auctionsEnded).filter((m, idx) => m.myBidderMetadata?.info.bidderPubkey.toBase58() == wallet?.publicKey?.toBase58());
+        break;
+      case LiveAuctionViewState.Resale:
+        items = resaleAuctions;
+        break;
+      case LiveAuctionViewState.Ended:
+        items = auctionsEnded;
+        break;
+  }
+
   const heroAuction = useMemo(
     () =>
       auctions.filter(a => {
         // const now = moment().unix();
-        return !a.auction.info.ended();
+        return !a.auction.info.ended() && !resaleAuctions.includes(a);
         // filter out auction for banner that are further than 30 days in the future
         // return Math.floor(delta / 86400) <= 30;
       })?.[0],
     [auctions],
-  );
-
-  const liveAuctions = auctions.sort(
-    (a, b) =>
-      a.auction.info.endedAt
-        ?.sub(b.auction.info.endedAt || new BN(0))
-        .toNumber() || 0,
   );
 
   const liveAuctionsView = (
@@ -60,7 +99,11 @@ export const HomeView = () => {
       columnClassName="my-masonry-grid_column"
     >
       {!isLoading
-        ? liveAuctions.map((m, idx) => {
+        ? items.map((m, idx) => {
+              if (m === heroAuction) {
+                return;
+              }
+
             const id = m.auction.pubkey.toBase58();
             return (
               <Link to={`/auction/${id}`} key={idx}>
@@ -79,7 +122,6 @@ export const HomeView = () => {
     >
       {!isLoading
         ? auctionsEnded
-            .filter((m, idx) => idx < 10)
             .map((m, idx) => {
               if (m === heroAuction) {
                 return;
@@ -99,7 +141,7 @@ export const HomeView = () => {
   const CURRENT_STORE = programIds().store;
 
   return (
-    <Layout style={{ margin: 0, alignItems: 'center' }}>
+    <Layout style={{ margin: 0, marginTop: 30, alignItems: 'center' }}>
       {!store && !isLoading && (
         <>
           {!CURRENT_STORE && (
@@ -153,65 +195,48 @@ export const HomeView = () => {
           )}
         </>
       )}
-      {/* <PreSaleBanner auction={heroAuction} /> */}
-      <Banner src={'/main-banner.svg'} useBannerBg={true}>
-        <div
-          style={{
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            marginLeft: '4vw',
-            maxWidth: 350,
-            lineHeight: 1.1,
-          }}
-        >
-          <h1
-            style={{
-              color: 'white',
-              margin: 0,
-            }}
-          >
-            The amazing world of McFarlane.
-          </h1>
-          <p
-            style={{
-              color: 'white',
-              fontSize: 'clamp(0.7em, 1.5vw, 16px)',
-              margin: '1rem 0 2rem',
-            }}
-          >
-            Buy exclusive McFarlane NFTs.
-          </p>
-          <Button
-            onClick={() => console.log('HOW TO BUY')}
-            className="secondary-btn"
-          >
-            How to Buy
-          </Button>
-        </div>
-      </Banner>
+      <PreSaleBanner auction={heroAuction} />
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
           <Col style={{ width: '100%', marginTop: 10 }}>
-            <Row>
-              <Tabs>
-                <TabPane
-                  tab={
-                    <>
-                      <span className={'live'}></span> Live
-                    </>
+            {liveAuctions.length >= 0 && (<Row>
+              <Tabs activeKey={activeKey}
+                  onTabClick={key => setActiveKey(key as LiveAuctionViewState)}>
+                  <TabPane
+                    tab={<span className="tab-title">Live Auctions</span>}
+                    key={LiveAuctionViewState.All}
+                  >
+                    {liveAuctionsView}
+                  </TabPane>
+                  {auctionsEnded.length > 0 && (
+                  <TabPane
+                    tab={<span className="tab-title">Secondary Marketplace</span>}
+                    key={LiveAuctionViewState.Resale}
+                  >
+                    {liveAuctionsView}
+                  </TabPane>
+                  )}
+                  {auctionsEnded.length > 0 && (
+                  <TabPane
+                    tab={<span className="tab-title">Ended Auctions</span>}
+                    key={LiveAuctionViewState.Ended}
+                  >
+                    {endedAuctions}
+                  </TabPane>
+                  )}
+                  {
+                    // Show all participated live and ended auctions except hero auction
                   }
-                  key={1}
-                  active={true}
-                >
-                  {liveAuctionsView}
-                </TabPane>
-                <TabPane tab={'Ended'} key={2}>
-                  {endedAuctions}
-                </TabPane>
+                  {connected && (
+                    <TabPane
+                      tab={<span className="tab-title">Participated</span>}
+                      key={LiveAuctionViewState.Participated}
+                    >
+                      {liveAuctionsView}
+                    </TabPane>
+                  )}
               </Tabs>
-            </Row>
+            </Row>)}
           </Col>
         </Content>
       </Layout>

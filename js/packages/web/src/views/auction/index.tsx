@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Row, Col, Button, Skeleton, Carousel } from 'antd';
 import { AuctionCard } from '../../components/AuctionCard';
+import { Connection, PublicKey } from '@solana/web3.js';
 import {
   AuctionView as Auction,
   AuctionViewItem,
@@ -13,12 +14,12 @@ import {
 } from '../../hooks';
 import { ArtContent } from '../../components/ArtContent';
 
-import './index.less';
 import {
   formatTokenAmount,
   Identicon,
   MetaplexModal,
   shortenAddress,
+  useConnection,
   useConnectionConfig,
   fromLamports,
   useMint,
@@ -26,10 +27,11 @@ import {
   AuctionState,
 } from '@oyster/common';
 import { MintInfo } from '@solana/spl-token';
+import { getHandleAndRegistryKey } from '@solana/spl-name-service';
 import useWindowDimensions from '../../utils/layout';
 import { CheckOutlined } from '@ant-design/icons';
 import { useMemo } from 'react';
-import { AppLayout } from '../../components/Layout';
+import { ArtType } from '../../types';
 
 export const AuctionItem = ({
   item,
@@ -78,7 +80,14 @@ export const AuctionView = () => {
   const art = useArt(auction?.thumbnail.metadata.pubkey);
   const { ref, data } = useExtendedArt(auction?.thumbnail.metadata.pubkey);
   const creators = useCreators(auction);
-  const edition = '1 of 1';
+  let edition = '';
+  if (art.type === ArtType.NFT) {
+    edition = 'Unique';
+  } else if (art.type === ArtType.Master) {
+    edition = 'NFT 0';
+  } else if (art.type === ArtType.Print) {
+    edition = `${art.edition} of ${art.supply}`;
+  }
   const nftCount = auction?.items.flat().length;
   const winnerCount = auction?.items.length;
 
@@ -111,7 +120,7 @@ export const AuctionView = () => {
   });
 
   return (
-    <AppLayout>
+    <>
       <Row justify="space-around" ref={ref}>
         <Col span={24} md={12} className="pr-4">
           <div className="auction-view" style={{ minHeight: 300 }}>
@@ -139,7 +148,7 @@ export const AuctionView = () => {
             )}
           </h1>
           <h6>About this {nftCount === 1 ? 'NFT' : 'Collection'}</h6>
-          <p>
+          <div className="auction-paragraph">
             {hasDescription && <Skeleton paragraph={{ rows: 3 }} />}
             {description ||
               (winnerCount !== undefined && (
@@ -147,7 +156,7 @@ export const AuctionView = () => {
                   No description provided.
                 </div>
               ))}
-          </p>
+          </div>
           {/* {auctionData[id] && (
             <>
               <h6>About this Auction</h6>
@@ -163,7 +172,14 @@ export const AuctionView = () => {
           <Row gutter={[50, 0]} style={{ marginRight: 'unset' }}>
             <Col>
               <h6>Edition</h6>
-              <p>{(auction?.items.length || 0) > 1 ? 'Multiple' : edition}</p>
+              {!auction && (
+                <Skeleton title={{ width: '100%' }} paragraph={{ rows: 0 }} />
+              )}
+              {auction && (
+                <p className="auction-art-edition">
+                  {(auction?.items.length || 0) > 1 ? 'Multiple' : edition}
+                </p>
+              )}
             </Col>
 
             <Col>
@@ -197,7 +213,7 @@ export const AuctionView = () => {
           <AuctionBids auctionView={auction} />
         </Col>
       </Row>
-    </AppLayout>
+    </>
   );
 };
 
@@ -212,6 +228,28 @@ const BidLine = (props: {
   const { wallet } = useWallet();
   const bidder = bid.info.bidderPubkey.toBase58();
   const isme = wallet?.publicKey?.toBase58() === bidder;
+
+  // Get Twitter Handle from address
+  const connection = useConnection();
+  const [bidderTwitterHandle, setBidderTwitterHandle] = useState('');
+  useEffect(() => {
+    const getTwitterHandle = async (
+      connection: Connection,
+      bidder: PublicKey,
+    ): Promise<string | undefined> => {
+      try {
+        const [twitterHandle] = await getHandleAndRegistryKey(
+          connection,
+          bidder,
+        );
+        setBidderTwitterHandle(twitterHandle);
+      } catch (err) {
+        console.warn(`err`);
+        return undefined;
+      }
+    };
+    getTwitterHandle(connection, bidder);
+  }, [bidderTwitterHandle]);
 
   return (
     <Row
@@ -276,7 +314,15 @@ const BidLine = (props: {
             }}
             address={bidder}
           />{' '}
-          {shortenAddress(bidder)}
+          {bidderTwitterHandle ? (
+            <a
+              target="_blank"
+              title={shortenAddress(bidder)}
+              href={`https://twitter.com/${bidderTwitterHandle}`}
+            >{`@${bidderTwitterHandle}`}</a>
+          ) : (
+            shortenAddress(bidder)
+          )}
           {isme && <span style={{ color: '#6479f6' }}>&nbsp;(you)</span>}
         </Row>
       </Col>

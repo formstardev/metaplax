@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Statistic } from 'antd';
 import { useSolPrice } from '../../contexts';
 import { formatUSD } from '@oyster/common';
-import './index.less';
 
 interface IAmountLabel {
   amount: number | string;
@@ -40,7 +39,7 @@ export const AmountLabel = (props: IAmountLabel) => {
           className="create-statistic"
           title={title || ''}
           value={amount}
-          prefix={<img src={'/sol-circle.svg'} />}
+          prefix="◎"
         />
       )}
       {displayUSD && (
