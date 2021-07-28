@@ -17,7 +17,6 @@ import {
 import { ArtCard } from './../../components/ArtCard';
 import { UserSearch, UserValue } from './../../components/UserSearch';
 import { Confetti } from './../../components/Confetti';
-import './../styles.less';
 import { mintNFT } from '../../actions';
 import {
   MAX_METADATA_LEN,
@@ -459,8 +458,7 @@ const UploadStep = (props: {
                 files: [coverFile, mainFile, customURL]
                   .filter(f => f)
                   .map(f => {
-                    const uri =
-                      typeof f === 'string' ? f : cleanName(f?.name) || '';
+                    const uri = typeof f === 'string' ? f : f?.name || '';
                     const type =
                       typeof f === 'string' || !f
                         ? 'unknown'
@@ -472,8 +470,8 @@ const UploadStep = (props: {
                     } as MetadataFile;
                   }),
               },
-              image: cleanName(coverFile?.name) || '',
-              animation_url: cleanName(mainFile && mainFile.name),
+              image: coverFile?.name || '',
+              animation_url: mainFile && mainFile.name,
             });
             props.setFiles([coverFile, mainFile].filter(f => f) as File[]);
             props.confirm();
@@ -698,9 +696,8 @@ const RoyaltiesSplitter = (props: {
           };
 
           return (
-            <Col span={24}>
+            <Col span={24} key={idx}>
               <Row
-                key={idx}
                 align="middle"
                 gutter={[0, 16]}
                 style={{ margin: '5px auto' }}
