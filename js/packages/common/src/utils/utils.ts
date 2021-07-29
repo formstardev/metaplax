@@ -35,11 +35,7 @@ export function useLocalStorageState(key: string, defaultState?: string) {
       if (newState === null) {
         localStorage.removeItem(key);
       } else {
-        try {
-          localStorage.setItem(key, JSON.stringify(newState));
-        } catch {
-          // ignore
-        }
+        localStorage.setItem(key, JSON.stringify(newState));
       }
     },
     [state, key],
@@ -68,17 +64,13 @@ export const findProgramAddress = async (
 
   const result = await PublicKey.findProgramAddress(seeds, programId);
 
-  try {
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        key: result[0].toBase58(),
-        nonce: result[1],
-      }),
-    );
-  } catch {
-    // ignore
-  }
+  localStorage.setItem(
+    key,
+    JSON.stringify({
+      key: result[0].toBase58(),
+      nonce: result[1],
+    }),
+  );
 
   return result;
 };
