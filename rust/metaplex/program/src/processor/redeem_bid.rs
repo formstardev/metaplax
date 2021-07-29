@@ -151,6 +151,7 @@ pub fn process_redeem_bid<'a>(
     let rent_info = next_account_info(account_info_iter)?;
 
     let transfer_authority_info = next_account_info(account_info_iter)?;
+    let auction_extended_info = next_account_info(account_info_iter).ok();
 
     let CommonRedeemReturn {
         auction_manager,
@@ -168,6 +169,7 @@ pub fn process_redeem_bid<'a>(
         safety_deposit_info,
         vault_info,
         auction_info,
+        auction_extended_info,
         bidder_metadata_info,
         bidder_info,
         token_program_info,
