@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Row, Button, Modal, ButtonProps } from 'antd';
 import { ArtCard } from './../../components/ArtCard';
-import './../styles.less';
 import { useUserArts } from '../../hooks';
 import Masonry from 'react-masonry-css';
 import { SafetyDepositDraft } from '../../actions/createAuctionManager';
