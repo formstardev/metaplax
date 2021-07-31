@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
+import { HashRouter, Route, Switch } from 'react-router-dom';
 import { contexts } from '@oyster/common';
 import { MetaProvider } from './contexts';
 import { AppLayout } from './components/Layout';
@@ -12,8 +12,7 @@ import {
   AuctionCreateView,
   AuctionView,
   HomeView,
-  ArtworkView,
-  ArtistAlleyView,
+  ArtworksView,
 } from './views';
 import { UseWalletProvider } from 'use-wallet';
 import { CoingeckoProvider } from './contexts/coingecko';
@@ -27,8 +26,10 @@ const { AccountsProvider } = contexts.Accounts;
 export function Routes() {
   return (
     <>
-      <BrowserRouter basename={'/'}>
-        <ConnectionProvider>
+      <HashRouter basename={'/'}>
+        <ConnectionProvider
+          storeId={process.env.NEXT_PUBLIC_STORE_OWNER_ADDRESS_ADDRESS}
+        >
           <WalletProvider>
             <UseWalletProvider chainId={5}>
               <AccountsProvider>
@@ -49,8 +50,8 @@ export function Routes() {
                           />
                           <Route
                             exact
-                            path="/artwork/:id?"
-                            component={() => <ArtworkView />}
+                            path="/artworks/:id?"
+                            component={() => <ArtworksView />}
                           />
                           <Route
                             exact
@@ -82,11 +83,6 @@ export function Routes() {
                             path="/auction/:id/billing"
                             component={() => <BillingView />}
                           />
-                          <Route
-                            exact
-                            path="/artistAlley"
-                            component={() => <ArtistAlleyView />}
-                          />
                           <Route path="/" component={() => <HomeView />} />
                         </Switch>
                       </AppLayout>
@@ -97,7 +93,7 @@ export function Routes() {
             </UseWalletProvider>
           </WalletProvider>
         </ConnectionProvider>
-      </BrowserRouter>
+      </HashRouter>
     </>
   );
 }
