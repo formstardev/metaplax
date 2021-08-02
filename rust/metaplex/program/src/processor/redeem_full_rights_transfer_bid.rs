@@ -47,12 +47,12 @@ pub fn process_full_rights_transfer_bid<'a>(
     let metadata_info = next_account_info(account_info_iter)?;
     let new_metadata_authority_info = next_account_info(account_info_iter)?;
     let transfer_authority_info = next_account_info(account_info_iter)?;
-    let auction_extended_info = next_account_info(account_info_iter).ok();
 
     let CommonRedeemReturn {
         auction_manager,
         redemption_bump_seed,
-        cancelled,
+        bidder_metadata,
+        auction: _a,
         rent: _rent,
         win_index,
         token_metadata_program,
@@ -65,7 +65,6 @@ pub fn process_full_rights_transfer_bid<'a>(
         safety_deposit_info,
         vault_info,
         auction_info,
-        auction_extended_info,
         bidder_metadata_info,
         bidder_info,
         token_program_info,
@@ -74,16 +73,13 @@ pub fn process_full_rights_transfer_bid<'a>(
         store_info,
         rent_info,
         is_participation: false,
-        user_provided_win_index: None,
         overwrite_win_index,
-        assert_bidder_signer: true,
-        ignore_bid_redeemed_item_check: false,
     })?;
 
     assert_owned_by(metadata_info, &token_metadata_program)?;
 
     let mut winning_item_index = None;
-    if !cancelled {
+    if !bidder_metadata.cancelled {
         if let Some(winning_index) = win_index {
             if winning_index < auction_manager.settings.winning_configs.len() {
                 let CommonWinningConfigCheckReturn {
@@ -93,7 +89,6 @@ pub fn process_full_rights_transfer_bid<'a>(
                     &auction_manager,
                     &safety_deposit_info,
                     winning_index,
-                    false,
                 )?;
 
                 winning_item_index = wii;

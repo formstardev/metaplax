@@ -15,7 +15,7 @@ import { findProgramAddress } from '../utils';
 export const AUCTION_PREFIX = 'auction';
 export const METADATA = 'metadata';
 export const EXTENDED = 'extended';
-export const MAX_AUCTION_DATA_EXTENDED_SIZE = 8 + 9 + 2 + 9 + 33 + 158;
+export const MAX_AUCTION_DATA_EXTENDED_SIZE = 8 + 9 + 2 + 200;
 
 export enum AuctionState {
   Created = 0,
@@ -41,16 +41,6 @@ export class BidState {
   type: BidStateType;
   bids: Bid[];
   max: BN;
-
-  public getWinnerAt(winnerIndex: number): PublicKey | null {
-    const convertedIndex = this.bids.length - winnerIndex - 1;
-
-    if (convertedIndex >= 0 && convertedIndex < this.bids.length) {
-      return this.bids[convertedIndex].key;
-    } else {
-      return null;
-    }
-  }
 
   public getWinnerIndex(bidder: PublicKey): number | null {
     if (!this.bids) return null;
