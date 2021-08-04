@@ -12,7 +12,6 @@ import {
   ParsedAccount,
   actions,
   Edition,
-  MasterEdition,
   AuctionData,
   SafetyDepositBox,
   VaultKey,
@@ -30,6 +29,8 @@ import {
   AuctionDataExtended,
   MAX_AUCTION_DATA_EXTENDED_SIZE,
   AuctionDataExtendedParser,
+  MasterEditionV1,
+  MasterEditionV2,
 } from '@oyster/common';
 import { MintInfo } from '@solana/spl-token';
 import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
@@ -54,6 +55,8 @@ import {
   WhitelistedCreatorParser,
   PayoutTicket,
   decodePayoutTicket,
+  PrizeTrackingTicket,
+  decodePrizeTrackingTicket,
 } from '../models/metaplex';
 import names from './../config/userNames.json';
 
@@ -62,9 +65,16 @@ interface MetaState {
   metadataByMint: Record<string, ParsedAccount<Metadata>>;
   metadataByMasterEdition: Record<string, ParsedAccount<Metadata>>;
   editions: Record<string, ParsedAccount<Edition>>;
-  masterEditions: Record<string, ParsedAccount<MasterEdition>>;
-  masterEditionsByPrintingMint: Record<string, ParsedAccount<MasterEdition>>;
-  masterEditionsByOneTimeAuthMint: Record<string, ParsedAccount<MasterEdition>>;
+  masterEditions: Record<
+    string,
+    ParsedAccount<MasterEditionV1 | MasterEditionV2>
+  >;
+  masterEditionsByPrintingMint: Record<string, ParsedAccount<MasterEditionV1>>;
+  masterEditionsByOneTimeAuthMint: Record<
+    string,
+    ParsedAccount<MasterEditionV1>
+  >;
+  prizeTrackingTickets: Record<string, ParsedAccount<PrizeTrackingTicket>>;
   auctionManagersByAuction: Record<string, ParsedAccount<AuctionManager>>;
   auctions: Record<string, ParsedAccount<AuctionData>>;
   auctionDataExtended: Record<string, ParsedAccount<AuctionDataExtended>>;
@@ -85,6 +95,7 @@ interface MetaState {
     ParsedAccount<WhitelistedCreator>
   >;
   payoutTickets: Record<string, ParsedAccount<PayoutTicket>>;
+  stores: Record<string, ParsedAccount<Store>>;
 }
 
 const { MetadataKey } = actions;
@@ -105,7 +116,12 @@ const isMetadataPartOfStore = (
     string,
     ParsedAccount<WhitelistedCreator>
   >,
+  useAll: boolean,
 ) => {
+  if (useAll) {
+    return true;
+  }
+
   if (!m?.info?.data?.creators) {
     return false;
   }
@@ -142,23 +158,30 @@ const MetaContext = React.createContext<MetaContextState>({
   bidRedemptions: {},
   whitelistedCreatorsByCreator: {},
   payoutTickets: {},
+  prizeTrackingTickets: {},
+  stores: {},
 });
 
 export function MetaProvider({ children = null as any }) {
   const connection = useConnection();
   const { env } = useConnectionConfig();
+  const urlParams = new URLSearchParams(window.location.search);
+  const all = urlParams.get('all') == 'true';
 
   const [state, setState] = useState<MetaState>({
     metadata: [] as Array<ParsedAccount<Metadata>>,
     metadataByMint: {} as Record<string, ParsedAccount<Metadata>>,
-    masterEditions: {} as Record<string, ParsedAccount<MasterEdition>>,
+    masterEditions: {} as Record<
+      string,
+      ParsedAccount<MasterEditionV1 | MasterEditionV2>
+    >,
     masterEditionsByPrintingMint: {} as Record<
       string,
-      ParsedAccount<MasterEdition>
+      ParsedAccount<MasterEditionV1>
     >,
     masterEditionsByOneTimeAuthMint: {} as Record<
       string,
-      ParsedAccount<MasterEdition>
+      ParsedAccount<MasterEditionV1>
     >,
     metadataByMasterEdition: {} as any,
     editions: {},
@@ -173,6 +196,8 @@ export function MetaProvider({ children = null as any }) {
     bidderMetadataByAuctionAndBidder: {},
     bidderPotsByAuctionAndBidder: {},
     safetyDepositBoxesByVaultAndIndex: {},
+    prizeTrackingTickets: {},
+    stores: {},
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -180,12 +205,15 @@ export function MetaProvider({ children = null as any }) {
   const updateMints = useCallback(
     async metadataByMint => {
       try {
-        const m = await queryExtendedMetadata(connection, metadataByMint);
-        setState(current => ({
-          ...current,
-          metadata: m.metadata,
-          metadataByMint: m.mintToMetadata,
-        }));
+        if (!all) {
+          const m = await queryExtendedMetadata(connection, metadataByMint);
+
+          setState(current => ({
+            ...current,
+            metadata: m.metadata,
+            metadataByMint: m.mintToMetadata,
+          }));
+        }
       } catch (er) {
         console.error(er);
       }
@@ -229,6 +257,8 @@ export function MetaProvider({ children = null as any }) {
         bidderMetadataByAuctionAndBidder: {},
         bidderPotsByAuctionAndBidder: {},
         safetyDepositBoxesByVaultAndIndex: {},
+        prizeTrackingTickets: {},
+        stores: {},
       };
 
       const updateTemp = (prop: keyof MetaState, key: string, value: any) => {
@@ -246,7 +276,7 @@ export function MetaProvider({ children = null as any }) {
         processAuctions(account, updateTemp);
         processMetaData(account, updateTemp);
 
-        await processMetaplexAccounts(account, updateTemp);
+        await processMetaplexAccounts(account, updateTemp, all);
       }
 
       const values = Object.values(
@@ -261,6 +291,7 @@ export function MetaProvider({ children = null as any }) {
             metadata,
             tempCache.store,
             tempCache.whitelistedCreatorsByCreator,
+            all,
           )
         ) {
           await metadata.info.init();
@@ -350,6 +381,7 @@ export function MetaProvider({ children = null as any }) {
             account: info.accountInfo,
           },
           updateStateValue,
+          all,
         );
       },
     );
@@ -371,7 +403,12 @@ export function MetaProvider({ children = null as any }) {
 
         if (
           result &&
-          isMetadataPartOfStore(result, store, whitelistedCreatorsByCreator)
+          isMetadataPartOfStore(
+            result,
+            store,
+            whitelistedCreatorsByCreator,
+            all,
+          )
         ) {
           await result.info.init();
           setState(data => ({
@@ -480,6 +517,8 @@ export function MetaProvider({ children = null as any }) {
         store: state.store,
         payoutTickets: state.payoutTickets,
         masterEditionsByOneTimeAuthMint: state.masterEditionsByOneTimeAuthMint,
+        prizeTrackingTickets: state.prizeTrackingTickets,
+        stores: state.stores,
         isLoading,
       }}
     >
@@ -623,6 +662,7 @@ const processAuctions = (
 const processMetaplexAccounts = async (
   a: PublicKeyAndAccount<Buffer>,
   setter: UpdateStateValueFunc,
+  useAll: boolean,
 ) => {
   if (a.account.owner.toBase58() !== programIds().metaplex.toBase58()) return;
 
@@ -631,7 +671,7 @@ const processMetaplexAccounts = async (
 
     if (a.account.data[0] === MetaplexKey.AuctionManagerV1) {
       const storeKey = new PublicKey(a.account.data.slice(1, 33));
-      if (storeKey.toBase58() === STORE_ID) {
+      if (storeKey.toBase58() === STORE_ID || useAll) {
         const auctionManager = decodeAuctionManager(a.account.data);
 
         const account: ParsedAccount<AuctionManager> = {
@@ -661,6 +701,14 @@ const processMetaplexAccounts = async (
         info: ticket,
       };
       setter('payoutTickets', a.pubkey.toBase58(), account);
+    } else if (a.account.data[0] === MetaplexKey.PrizeTrackingTicketV1) {
+      const ticket = decodePrizeTrackingTicket(a.account.data);
+      const account: ParsedAccount<PrizeTrackingTicket> = {
+        pubkey: a.pubkey,
+        account: a.account,
+        info: ticket,
+      };
+      setter('prizeTrackingTickets', a.pubkey.toBase58(), account);
     } else if (a.account.data[0] === MetaplexKey.StoreV1) {
       const store = decodeStore(a.account.data);
       const account: ParsedAccount<Store> = {
@@ -671,6 +719,7 @@ const processMetaplexAccounts = async (
       if (a.pubkey.toBase58() === STORE_ID) {
         setter('store', a.pubkey.toBase58(), account);
       }
+      setter('stores', a.pubkey.toBase58(), account);
     } else if (a.account.data[0] === MetaplexKey.WhitelistedCreatorV1) {
       const whitelistedCreator = decodeWhitelistedCreator(a.account.data);
 
@@ -740,24 +789,40 @@ const processMetaData = (
         info: edition,
       };
       setter('editions', meta.pubkey.toBase58(), account);
-    } else if (meta.account.data[0] === MetadataKey.MasterEditionV1) {
+    } else if (
+      meta.account.data[0] === MetadataKey.MasterEditionV1 ||
+      meta.account.data[0] === MetadataKey.MasterEditionV2
+    ) {
       const masterEdition = decodeMasterEdition(meta.account.data);
-      const account: ParsedAccount<MasterEdition> = {
-        pubkey: meta.pubkey,
-        account: meta.account,
-        info: masterEdition,
-      };
-      setter('masterEditions', meta.pubkey.toBase58(), account);
-      setter(
-        'masterEditionsByPrintingMint',
-        masterEdition.printingMint.toBase58(),
-        account,
-      );
-      setter(
-        'masterEditionsByOneTimeAuthMint',
-        masterEdition.oneTimePrintingAuthorizationMint.toBase58(),
-        account,
-      );
+
+      if (masterEdition.key == MetadataKey.MasterEditionV1) {
+        const account: ParsedAccount<MasterEditionV1> = {
+          pubkey: meta.pubkey,
+          account: meta.account,
+          info: masterEdition as MasterEditionV1,
+        };
+        setter('masterEditions', meta.pubkey.toBase58(), account);
+
+        setter(
+          'masterEditionsByPrintingMint',
+          (masterEdition as MasterEditionV1).printingMint.toBase58(),
+          account,
+        );
+        setter(
+          'masterEditionsByOneTimeAuthMint',
+          (
+            masterEdition as MasterEditionV1
+          ).oneTimePrintingAuthorizationMint.toBase58(),
+          account,
+        );
+      } else {
+        const account: ParsedAccount<MasterEditionV2> = {
+          pubkey: meta.pubkey,
+          account: meta.account,
+          info: masterEdition as MasterEditionV2,
+        };
+        setter('masterEditions', meta.pubkey.toBase58(), account);
+      }
     }
   } catch {
     // ignore errors
