@@ -5,8 +5,7 @@ import { Art, Artist, ArtType } from '../types';
 import {
   Edition,
   IMetadataExtension,
-  MasterEditionV1,
-  MasterEditionV2,
+  MasterEdition,
   Metadata,
   ParsedAccount,
 } from '@oyster/common';
@@ -17,10 +16,7 @@ import { useInView } from 'react-intersection-observer';
 const metadataToArt = (
   info: Metadata | undefined,
   editions: Record<string, ParsedAccount<Edition>>,
-  masterEditions: Record<
-    string,
-    ParsedAccount<MasterEditionV1 | MasterEditionV2>
-  >,
+  masterEditions: Record<string, ParsedAccount<MasterEdition>>,
   whitelistedCreatorsByCreator: Record<
     string,
     ParsedAccount<WhitelistedCreator>
@@ -213,11 +209,7 @@ export const useExtendedArt = (id?: PublicKey | string) => {
               .then(async _ => {
                 try {
                   const data = await _.json();
-                  try {
-                    localStorage.setItem(uri, JSON.stringify(data));
-                  } catch {
-                    // ignore
-                  }
+                  localStorage.setItem(uri, JSON.stringify(data));
                   setData(processJson(data));
                 } catch {
                   return undefined;

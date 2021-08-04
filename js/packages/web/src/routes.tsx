@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Route, Switch } from 'react-router-dom';
+import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import { contexts } from '@oyster/common';
 import { MetaProvider } from './contexts';
 import { AppLayout } from './components/Layout';
@@ -12,8 +12,8 @@ import {
   AuctionCreateView,
   AuctionView,
   HomeView,
-  ArtworksView,
-  AnalyticsView,
+  ArtworkView,
+  ArtistAlleyView,
 } from './views';
 import { UseWalletProvider } from 'use-wallet';
 import { CoingeckoProvider } from './contexts/coingecko';
@@ -27,10 +27,8 @@ const { AccountsProvider } = contexts.Accounts;
 export function Routes() {
   return (
     <>
-      <HashRouter basename={'/'}>
-        <ConnectionProvider
-          storeId={process.env.NEXT_PUBLIC_STORE_OWNER_ADDRESS_ADDRESS}
-        >
+      <BrowserRouter basename={'/'}>
+        <ConnectionProvider>
           <WalletProvider>
             <UseWalletProvider chainId={5}>
               <AccountsProvider>
@@ -46,18 +44,13 @@ export function Routes() {
                           />
                           <Route
                             exact
-                            path="/analytics"
-                            component={() => <AnalyticsView />}
-                          />
-                          <Route
-                            exact
                             path="/art/create/:step_param?"
                             component={() => <ArtCreateView />}
                           />
                           <Route
                             exact
-                            path="/artworks/:id?"
-                            component={() => <ArtworksView />}
+                            path="/artwork/:id?"
+                            component={() => <ArtworkView />}
                           />
                           <Route
                             exact
@@ -89,6 +82,11 @@ export function Routes() {
                             path="/auction/:id/billing"
                             component={() => <BillingView />}
                           />
+                          <Route
+                            exact
+                            path="/artistAlley"
+                            component={() => <ArtistAlleyView />}
+                          />
                           <Route path="/" component={() => <HomeView />} />
                         </Switch>
                       </AppLayout>
@@ -99,7 +97,7 @@ export function Routes() {
             </UseWalletProvider>
           </WalletProvider>
         </ConnectionProvider>
-      </HashRouter>
+      </BrowserRouter>
     </>
   );
 }

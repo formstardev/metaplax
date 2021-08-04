@@ -228,10 +228,6 @@ pub enum VaultError {
     /// Accept payment close authority should be none
     #[error("Accept payment close authority should be none")]
     CloseAuthorityShouldBeNone,
-
-    /// Derived key invalid
-    #[error("Derived key invalid")]
-    DerivedKeyInvalid,
 }
 
 impl PrintProgramError for VaultError {
