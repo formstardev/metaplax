@@ -3,6 +3,7 @@ import { Card } from 'antd';
 
 import { Artist } from '../../types';
 
+import './index.less';
 import { shortenAddress } from '@oyster/common';
 import { MetaAvatar } from '../MetaAvatar';
 
