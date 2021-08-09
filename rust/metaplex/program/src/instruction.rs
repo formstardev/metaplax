@@ -1,5 +1,8 @@
 use {
-    crate::state::{AuctionManagerSettings, PREFIX},
+    crate::{
+        deprecated_state::AuctionManagerSettingsV1,
+        state::{SafetyDepositConfig, TupleNumericType, PREFIX},
+    },
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::{
         instruction::{AccountMeta, Instruction},
@@ -47,17 +50,28 @@ pub struct RedeemPrintingV2BidArgs {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone)]
-pub struct EndAuctionArgs {
-    /// If the auction was blinded, a revealing price must be specified to release the auction
-    /// winnings.
-    pub reveal: Option<(u64, u64)>,
+pub struct RedeemParticipationBidV3Args {
+    pub win_index: Option<u64>,
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Clone)]
+pub struct InitAuctionManagerV2Args {
+    pub amount_type: TupleNumericType,
+    pub length_type: TupleNumericType,
+    // how many ranges you can store in the AuctionWinnerTokenTypeTracker. For a limited edition single, you really
+    // only need 1, for more complex auctions you may need more. Feel free to scale this
+    // with the complexity of your auctions - this thing stores a range of how many unique token types
+    // each range of people gets in the most efficient compressed way possible, but if you don't
+    // give a high enough list length, while you may save space, you may also blow out your struct size while performing
+    // validation and have a failed auction.
+    pub max_ranges: u64,
 }
 
 /// Instructions supported by the Fraction program.
 #[derive(BorshSerialize, BorshDeserialize, Clone)]
 pub enum MetaplexInstruction {
-    /// Initializes an Auction Manager
-    //
+    /// Initializes an Auction Manager V1
+    ///
     ///   0. `[writable]` Uninitialized, unallocated auction manager account with pda of ['metaplex', auction_key from auction referenced below]
     ///   1. `[]` Combined vault account with authority set to auction manager account (this will be checked)
     ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
@@ -66,9 +80,9 @@ pub enum MetaplexInstruction {
     ///   4. `[signer]` Payer
     ///   5. `[]` Accept payment account of same token mint as the auction for taking payment for open editions, owner should be auction manager key
     ///   6. `[]` Store that this auction manager will belong to
-    ///   7. `[]` System sysvar
+    ///   7. `[]` System sysvar    
     ///   8. `[]` Rent sysvar
-    InitAuctionManager(AuctionManagerSettings),
+    DeprecatedInitAuctionManagerV1(AuctionManagerSettingsV1),
 
     /// Validates that a given safety deposit box has in it contents that match the expected WinningConfig in the auction manager.
     /// A stateful call, this will error out if you call it a second time after validation has occurred.
@@ -96,8 +110,9 @@ pub enum MetaplexInstruction {
     ///   17. `[writable]` Limited edition Printing mint account (optional - only if using sending Limited Edition)
     ///   18. `[signer]` Limited edition Printing mint Authority account, this will TEMPORARILY TRANSFER MINTING AUTHORITY to the auction manager
     ///         until all limited editions have been redeemed for authority tokens.
-    ValidateSafetyDepositBox,
+    DeprecatedValidateSafetyDepositBoxV1,
 
+    /// NOTE: Requires an AuctionManagerV1.
     /// Note: This requires that auction manager be in a Running state.
     ///
     /// If an auction is complete, you can redeem your bid for a specific item here. If you are the first to do this,
@@ -130,8 +145,9 @@ pub enum MetaplexInstruction {
     ///   18. `[optional/writable]` Master edition (if Printing type of WinningConfig)
     ///   19. `[optional/writable]` Reservation list PDA ['metadata', program id, master edition key, 'reservation', auction manager key]
     ///        relative to token metadata program (if Printing type of WinningConfig)
-    ///   20. `[]` Auction extended (pda relative to auction of ['auction', program id, vault key, 'extended'])
-    DeprecatedRedeemBid,
+    ///   20. `[]` Safety deposit config pda of ['metaplex', program id, auction manager, safety deposit]
+    ///      This account will only get used AND BE REQUIRED in the event this is an AuctionManagerV2
+    RedeemBid,
 
     /// Note: This requires that auction manager be in a Running state.
     ///
@@ -167,7 +183,8 @@ pub enum MetaplexInstruction {
     ///             after this transaction. Otherwise this account will be ignored.
     ///   19. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id, vault key]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
-    ///   20. `[]` Auction extended (pda relative to auction of ['auction', program id, vault key, 'extended'])
+    ///   20. `[]` Safety deposit config pda of ['metaplex', program id, auction manager, safety deposit]
+    ///      This account will only get used AND BE REQUIRED in the event this is an AuctionManagerV2
     RedeemFullRightsTransferBid,
 
     /// Note: This requires that auction manager be in a Running state.
@@ -189,7 +206,8 @@ pub enum MetaplexInstruction {
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
     ///   4. `[]` Safety deposit box account
     ///   5. `[]` Vault account
-    ///   6. `[]` Fraction mint of the vault
+    ///   6. `[]` Safety deposit config pda of ['metaplex', program id, auction manager, safety deposit]
+    ///      This account will only get used in the event this is an AuctionManagerV2    
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
     ///   9. `[signer optional/writable]` Your Bidder account - Only needs to be signer if payer does not own
@@ -205,7 +223,6 @@ pub enum MetaplexInstruction {
     ///   18.  `[writable]` The accept payment account for the auction manager
     ///   19.  `[writable]` The token account you will potentially pay for the open edition bid with if necessary
     ///   20. `[writable]` Participation NFT printing holding account (present on participation_state)
-    ///   21. `[]` Auction extended (pda relative to auction of ['auction', program id, vault key, 'extended'])
     DeprecatedRedeemParticipationBid,
 
     /// If the auction manager is in Validated state, it can invoke the start command via calling this command here.
@@ -276,6 +293,8 @@ pub enum MetaplexInstruction {
     ///   11. `[]` Token program
     ///   12. `[]` System program
     ///   13. `[]` Rent sysvar
+    ///   14. `[]` AuctionWinnerTokenTypeTracker, pda of seed ['metaplex', program id, auction manager key, 'totals']
+    ///   15. `[]` Safety deposit config pda of ['metaplex', program id, auction manager, safety deposit]
     EmptyPaymentAccount(EmptyPaymentAccountArgs),
 
     /// Given a signer wallet, create a store with pda ['metaplex', wallet] (if it does not exist) and/or update it
@@ -304,6 +323,7 @@ pub enum MetaplexInstruction {
     ///   6. `[]` Rent sysvar
     SetWhitelistedCreator(SetWhitelistedCreatorArgs),
 
+    /// NOTE: Requires an AuctionManagerV1.
     ///   Validates an participation nft (if present) on the Auction Manager. Because of the differing mechanics of an open
     ///   edition (required for participation nft), it needs to be validated at a different endpoint than a normal safety deposit box.
     ///   0. `[writable]` Auction manager
@@ -322,6 +342,7 @@ pub enum MetaplexInstruction {
     ///   10. `[]` Rent sysvar
     DeprecatedValidateParticipation,
 
+    /// NOTE: Requires an AuctionManagerV1.
     /// Needs to be called by someone at the end of the auction - will use the one time authorization token
     /// to fire up a bunch of printing tokens for use in participation redemptions.
     ///
@@ -380,7 +401,7 @@ pub enum MetaplexInstruction {
     /// 6. `[]` Clock sysvar
     DecommissionAuctionManager,
 
-    /// Note: This requires that auction manager be in a Running state.
+    /// Note: This requires that auction manager be in a Running state and that be of the V1 type.
     ///
     /// If an auction is complete, you can redeem your printing v2 bid for a specific item here. If you are the first to do this,
     /// The auction manager will switch from Running state to Disbursing state. If you are the last, this may change
@@ -397,7 +418,8 @@ pub enum MetaplexInstruction {
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
     ///   4. `[writable]` Safety deposit box account
     ///   5. `[writable]` Vault account
-    ///   6. `[writable]` Fraction mint of the vault
+    ///   6. `[]` Safety deposit config pda of ['metaplex', program id, auction manager, safety deposit]
+    ///      This account will only get used in the event this is an AuctionManagerV2
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
     ///   9. `[]` Your Bidder account - Only needs to be signer if payer does not own
@@ -417,7 +439,6 @@ pub enum MetaplexInstruction {
     ///        where edition_number is NOT the edition number you pass in args but actually edition_number = floor(edition/EDITION_MARKER_BIT_SIZE). PDA is relative to token metadata.
     ///   23. `[signer]` Mint authority of new mint - THIS WILL TRANSFER AUTHORITY AWAY FROM THIS KEY
     ///   24. `[]` Metadata account of token in vault
-    ///   25. `[]` Auction extended (pda relative to auction of ['auction', program id, vault key, 'extended'])
     RedeemPrintingV2Bid(RedeemPrintingV2BidArgs),
 
     /// Permissionless call to redeem the master edition in a given safety deposit for a PrintingV2 winning config to the
@@ -438,6 +459,8 @@ pub enum MetaplexInstruction {
     ///   11. `[]` Token Vault program
     ///   12. `[]` Store
     ///   13. `[]` Rent sysvar
+    ///   14. `[]` Safety deposit config pda of ['metaplex', program id, auction manager, safety deposit]
+    ///      This account will only get used in the event this is an AuctionManagerV2
     WithdrawMasterEdition,
 
     /// Note: This requires that auction manager be in a Running state.
@@ -463,7 +486,8 @@ pub enum MetaplexInstruction {
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
     ///   4. `[]` Safety deposit box account
     ///   5. `[]` Vault account
-    ///   6. `[]` Fraction mint of the vault
+    ///   6. `[writable]` Safety deposit config pda of ['metaplex', program id, auction manager, safety deposit]
+    ///      This account will only get used in the event this is an AuctionManagerV2
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
     ///   9. `[]` Your Bidder account
@@ -487,25 +511,110 @@ pub enum MetaplexInstruction {
     ///        where edition_number is NOT the edition number you pass in args but actually edition_number = floor(edition/EDITION_MARKER_BIT_SIZE). PDA is relative to token metadata.
     ///   26. `[signer]` Mint authority of new mint - THIS WILL TRANSFER AUTHORITY AWAY FROM THIS KEY
     ///   27. `[]` Metadata account of token in vault
-    ///   28. `[]` Auction data extended - pda of ['auction', auction program id, vault key, 'extended'] relative to auction program
-    ///   29. `[]` Auction extended
-    RedeemParticipationBidV2,
+    //    28. `[]` Auction data extended - pda of ['auction', auction program id, vault key, 'extended'] relative to auction program
+    DeprecatedRedeemParticipationBidV2,
 
-    /// Ends an auction, regardless of end timing conditions.
+    /// Initializes an Auction Manager V2
+    ///
+    /// NOTE: It is not possible to use MasterEditionV1s for participation nfts with these managers.
+    ///
+    ///   0. `[writable]` Uninitialized, unallocated auction manager account with pda of ['metaplex', auction_key from auction referenced below]
+    ///   1. `[writable]` AuctionWinnerTokenTypeTracker, pda of seed ['metaplex', program id, auction manager key, 'totals']
+    ///   2. `[]` Combined vault account with authority set to auction manager account (this will be checked)
+    ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
+    ///   3. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
+    ///   4. `[]` Authority for the Auction Manager
+    ///   5. `[signer]` Payer
+    ///   6. `[]` Accept payment account of same token mint as the auction for taking payment for open editions, owner should be auction manager key
+    ///   7. `[]` Store that this auction manager will belong to
+    ///   8. `[]` System sysvar    
+    ///   9. `[]` Rent sysvar
+    InitAuctionManagerV2(InitAuctionManagerV2Args),
+
+    /// NOTE: Requires an AuctionManagerV2.
+    ///
+    /// Validates that a given safety deposit box has in it contents that match the given SafetyDepositConfig, and creates said config.
+    /// A stateful call, this will error out if you call it a second time after validation has occurred.
+    ///   0. `[writable]` Uninitialized Safety deposit config, pda of seed ['metaplex', program id, auction manager key, safety deposit key]
+    ///   1. `[writable]` AuctionWinnerTokenTypeTracker, pda of seed ['metaplex', program id, auction manager key, 'totals']
+    ///   2. `[writable]` Auction manager
+    ///   3. `[writable]` Metadata account
+    ///   4. `[writable]` Original authority lookup - unallocated uninitialized pda account with seed ['metaplex', auction key, metadata key]
+    ///                   We will store original authority here to return it later.
+    ///   5. `[]` A whitelisted creator entry for the store of this auction manager pda of ['metaplex', store key, creator key]
+    ///   where creator key comes from creator list of metadata, any will do
+    ///   6. `[]` The auction manager's store key
+    ///   7. `[]` Safety deposit box account
+    ///   8. `[]` Safety deposit box storage account where the actual nft token is stored
+    ///   9. `[]` Mint account of the token in the safety deposit box
+    ///   10. `[]` Edition OR MasterEdition record key
+    ///           Remember this does not need to be an existing account (may not be depending on token), just is a pda with seed
+    ///            of ['metadata', program id, Printing mint id, 'edition']. - remember PDA is relative to token metadata program.
+    ///   11. `[]` Vault account
+    ///   12. `[signer]` Authority
+    ///   13. `[signer optional]` Metadata Authority - Signer only required if doing a full ownership txfer
+    ///   14. `[signer]` Payer
+    ///   15. `[]` Token metadata program
+    ///   16. `[]` System
+    ///   17. `[]` Rent sysvar
+    ValidateSafetyDepositBoxV2(SafetyDepositConfig),
+
+    /// Note: This requires that auction manager be in a Running state.
+    ///
+    /// Second note: V3 is the same as V2, but it requires an additional argument because it is intended to be used with AuctionManagerV2s,
+    /// not V1s, which use BidRedemptionTicketV2s, which require this additional argument (the user_provided_win_index).
+    /// You can in theory pay for someone else's participation NFT and gift it to them.
+    ///
+    /// If an auction is complete, you can redeem your bid for an Open Edition token if it is eligible. If you are the first to do this,
+    /// The auction manager will switch from Running state to Disbursing state. If you are the last, this may change
+    /// the auction manager state to Finished provided that no authorities remain to be delegated for Master Edition tokens.
+    ///
+    /// NOTE: Please note that it is totally possible to redeem a bid 2x - once for a prize you won and once at this end point for a open edition
+    /// that comes as a 'token of appreciation' for bidding. They are not mutually exclusive unless explicitly set to be that way.
+    ///
+    /// NOTE: If you are redeeming a newly minted Open Edition, you must actually supply a destination account containing a token from a brand new
+    /// mint. We do not provide the token to you. Our job with this action is to christen this mint + token combo as an official Open Edition.
     ///
     ///   0. `[writable]` Auction manager
-    ///   1. `[writable]` Auction
-    ///   2. `[]` Auction extended data account (pda relative to auction of ['auction', program id, vault key, 'extended']).
-    ///   3. `[signer]` Auction manager authority
-    ///   4. `[]` Store key
-    ///   5. `[]` Auction program
-    ///   6. `[]` Clock sysvar
-    EndAuction(EndAuctionArgs),
+    ///   1. `[writable]` Safety deposit token storage account
+    ///   2. `[writable]` Account containing 1 token of your new mint type.
+    ///   MUST be an associated token account of pda [wallet, token program, mint] relative to ata program.
+    ///   3. `[writable]` Bid redemption key -
+    ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
+    ///   4. `[]` Safety deposit box account
+    ///   5. `[]` Vault account
+    ///   6. `[writable]` Safety deposit config pda of ['metaplex', program id, auction manager, safety deposit]
+    ///      This account will only get used in the event this is an AuctionManagerV2
+    ///   7. `[]` Auction
+    ///   8. `[]` Your BidderMetadata account
+    ///   9. `[]` Your Bidder account
+    ///   10. `[signer]` Payer
+    ///   11. `[]` Token program
+    ///   12. `[]` Token Vault program
+    ///   13. `[]` Token metadata program
+    ///   14. `[]` Store
+    ///   15. `[]` System
+    ///   16. `[]` Rent sysvar
+    ///   17. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the participation_fixed_price
+    ///             on the auction manager to the auction manager account itself.
+    ///   18.  `[writable]` The accept payment account for the auction manager
+    ///   19.  `[writable]` The token account you will potentially pay for the open edition bid with if necessary.
+    ///   20. `[writable]` Prize tracking ticket (pda of ['metaplex', program id, auction manager key, metadata mint id])
+    ///   21. `[writable]` New Metadata key (pda of ['metadata', program id, mint id])
+    ///   22. `[writable]` New Edition (pda of ['metadata', program id, mint id, 'edition'])
+    ///   23. `[writable]` Master Edition of token in vault V2 (pda of ['metadata', program id, master metadata mint id, 'edition']) PDA is relative to token metadata.
+    ///   24. `[writable]` Mint of new token
+    ///   25. `[writable]` Edition pda to mark creation - will be checked for pre-existence. (pda of ['metadata', program id, master metadata mint id, 'edition', edition_number])
+    ///        where edition_number is NOT the edition number you pass in args but actually edition_number = floor(edition/EDITION_MARKER_BIT_SIZE). PDA is relative to token metadata.
+    ///   26. `[signer]` Mint authority of new mint - THIS WILL TRANSFER AUTHORITY AWAY FROM THIS KEY
+    ///   27. `[]` Metadata account of token in vault
+    //    28. `[]` Auction data extended - pda of ['auction', auction program id, vault key, 'extended'] relative to auction program
+    RedeemParticipationBidV3(RedeemParticipationBidV3Args),
 }
 
-/// Creates an InitAuctionManager instruction
+/// Creates an DeprecatedInitAuctionManager instruction
 #[allow(clippy::too_many_arguments)]
-pub fn create_init_auction_manager_instruction(
+pub fn create_deprecated_init_auction_manager_v1_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
     vault: Pubkey,
@@ -514,7 +623,7 @@ pub fn create_init_auction_manager_instruction(
     payer: Pubkey,
     accept_payment_account_key: Pubkey,
     store: Pubkey,
-    settings: AuctionManagerSettings,
+    settings: AuctionManagerSettingsV1,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -529,9 +638,47 @@ pub fn create_init_auction_manager_instruction(
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
-        data: MetaplexInstruction::InitAuctionManager(settings)
+        data: MetaplexInstruction::DeprecatedInitAuctionManagerV1(settings)
             .try_to_vec()
             .unwrap(),
+    }
+}
+
+/// Creates an InitAuctionManager instruction
+#[allow(clippy::too_many_arguments)]
+pub fn create_init_auction_manager_v2_instruction(
+    program_id: Pubkey,
+    auction_manager: Pubkey,
+    vault: Pubkey,
+    auction: Pubkey,
+    auction_manager_authority: Pubkey,
+    payer: Pubkey,
+    accept_payment_account_key: Pubkey,
+    store: Pubkey,
+    amount_type: TupleNumericType,
+    length_type: TupleNumericType,
+    max_ranges: u64,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(auction_manager, false),
+            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(auction, false),
+            AccountMeta::new_readonly(auction_manager_authority, false),
+            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(accept_payment_account_key, false),
+            AccountMeta::new_readonly(store, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(sysvar::rent::id(), false),
+        ],
+        data: MetaplexInstruction::InitAuctionManagerV2(InitAuctionManagerV2Args {
+            amount_type,
+            length_type,
+            max_ranges,
+        })
+        .try_to_vec()
+        .unwrap(),
     }
 }
 
@@ -571,9 +718,9 @@ pub fn deprecated_create_validate_participation_instruction(
     }
 }
 
-/// Creates an ValidateSafetyDepositBox instruction
+/// Creates an DeprecatedValidateSafetyDepositBoxV1 instruction
 #[allow(clippy::too_many_arguments)]
-pub fn create_validate_safety_deposit_box_instruction(
+pub fn create_deprecated_validate_safety_deposit_box_v1_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
     metadata: Pubkey,
@@ -631,15 +778,72 @@ pub fn create_validate_safety_deposit_box_instruction(
     Instruction {
         program_id,
         accounts,
-        data: MetaplexInstruction::ValidateSafetyDepositBox
+        data: MetaplexInstruction::DeprecatedValidateSafetyDepositBoxV1
             .try_to_vec()
             .unwrap(),
     }
 }
 
-/// Creates an Deprecated RedeemBid instruction
+/// Creates an ValidateSafetyDepositBoxV2 instruction
 #[allow(clippy::too_many_arguments)]
-pub fn create_deprecated_redeem_bid_instruction(
+pub fn create_validate_safety_deposit_box_v2_instruction(
+    program_id: Pubkey,
+    auction_manager: Pubkey,
+    metadata: Pubkey,
+    original_authority_lookup: Pubkey,
+    whitelisted_creator: Pubkey,
+    store: Pubkey,
+    safety_deposit_box: Pubkey,
+    safety_deposit_token_store: Pubkey,
+    safety_deposit_mint: Pubkey,
+    edition: Pubkey,
+    vault: Pubkey,
+    auction_manager_authority: Pubkey,
+    metadata_authority: Pubkey,
+    payer: Pubkey,
+    safety_deposit_config: SafetyDepositConfig,
+) -> Instruction {
+    let (validation, _) = Pubkey::find_program_address(
+        &[
+            PREFIX.as_bytes(),
+            program_id.as_ref(),
+            auction_manager.as_ref(),
+            safety_deposit_box.as_ref(),
+        ],
+        &program_id,
+    );
+    let accounts = vec![
+        AccountMeta::new(validation, false),
+        AccountMeta::new(auction_manager, false),
+        AccountMeta::new(metadata, false),
+        AccountMeta::new(original_authority_lookup, false),
+        AccountMeta::new_readonly(whitelisted_creator, false),
+        AccountMeta::new_readonly(store, false),
+        AccountMeta::new_readonly(safety_deposit_box, false),
+        AccountMeta::new_readonly(safety_deposit_token_store, false),
+        AccountMeta::new_readonly(safety_deposit_mint, false),
+        AccountMeta::new_readonly(edition, false),
+        AccountMeta::new_readonly(vault, false),
+        AccountMeta::new_readonly(auction_manager_authority, true),
+        AccountMeta::new_readonly(metadata_authority, true),
+        AccountMeta::new_readonly(payer, true),
+        AccountMeta::new_readonly(spl_token_metadata::id(), false),
+        AccountMeta::new_readonly(solana_program::system_program::id(), false),
+        AccountMeta::new_readonly(sysvar::rent::id(), false),
+    ];
+
+    Instruction {
+        program_id,
+        accounts,
+        data: MetaplexInstruction::ValidateSafetyDepositBoxV2(safety_deposit_config)
+            .try_to_vec()
+            .unwrap(),
+    }
+}
+
+/// Creates an RedeemBid instruction
+#[allow(clippy::too_many_arguments)]
+pub fn create_redeem_bid_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
     safety_deposit_token_store: Pubkey,
@@ -649,7 +853,6 @@ pub fn create_deprecated_redeem_bid_instruction(
     vault: Pubkey,
     fraction_mint: Pubkey,
     auction: Pubkey,
-    auction_extended: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
     payer: Pubkey,
@@ -677,11 +880,8 @@ pub fn create_deprecated_redeem_bid_instruction(
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(transfer_authority, false),
-            AccountMeta::new_readonly(auction_extended, false),
         ],
-        data: MetaplexInstruction::DeprecatedRedeemBid
-            .try_to_vec()
-            .unwrap(),
+        data: MetaplexInstruction::RedeemBid.try_to_vec().unwrap(),
     }
 }
 
@@ -697,7 +897,6 @@ pub fn create_redeem_full_rights_transfer_bid_instruction(
     vault: Pubkey,
     fraction_mint: Pubkey,
     auction: Pubkey,
-    auction_extended: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
     payer: Pubkey,
@@ -729,7 +928,6 @@ pub fn create_redeem_full_rights_transfer_bid_instruction(
             AccountMeta::new(master_metadata, false),
             AccountMeta::new_readonly(new_metadata_authority, false),
             AccountMeta::new_readonly(transfer_authority, false),
-            AccountMeta::new_readonly(auction_extended, false),
         ],
         data: MetaplexInstruction::RedeemFullRightsTransferBid
             .try_to_vec()
@@ -749,7 +947,6 @@ pub fn create_deprecated_redeem_participation_bid_instruction(
     vault: Pubkey,
     fraction_mint: Pubkey,
     auction: Pubkey,
-    auction_extended: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
     payer: Pubkey,
@@ -783,7 +980,6 @@ pub fn create_deprecated_redeem_participation_bid_instruction(
             AccountMeta::new(accept_payment, false),
             AccountMeta::new(paying_token_account, false),
             AccountMeta::new(printing_authorization_token_account, false),
-            AccountMeta::new_readonly(auction_extended, false),
         ],
         data: MetaplexInstruction::DeprecatedRedeemParticipationBid
             .try_to_vec()
@@ -842,7 +1038,6 @@ pub fn create_set_store_instruction(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn create_deprecated_populate_participation_printing_account_instruction(
     program_id: Pubkey,
     safety_deposit_token_store: Pubkey,
@@ -926,9 +1121,7 @@ pub fn create_redeem_printing_v2_bid_instruction(
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
     vault: Pubkey,
-    fraction_mint: Pubkey,
     auction: Pubkey,
-    auction_extended: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
     payer: Pubkey,
@@ -940,6 +1133,16 @@ pub fn create_redeem_printing_v2_bid_instruction(
     edition: u64,
     win_index: u64,
 ) -> Instruction {
+    let (config, _) = Pubkey::find_program_address(
+        &[
+            PREFIX.as_bytes(),
+            program_id.as_ref(),
+            auction_manager.as_ref(),
+            safety_deposit_box.as_ref(),
+        ],
+        &program_id,
+    );
+
     let (prize_tracking_ticket, _) = Pubkey::find_program_address(
         &[
             PREFIX.as_bytes(),
@@ -1002,7 +1205,7 @@ pub fn create_redeem_printing_v2_bid_instruction(
             AccountMeta::new(bid_redemption, false),
             AccountMeta::new(safety_deposit_box, false),
             AccountMeta::new(vault, false),
-            AccountMeta::new(fraction_mint, false),
+            AccountMeta::new(config, false),
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new_readonly(bidder_metadata, false),
             AccountMeta::new_readonly(bidder, false),
@@ -1021,7 +1224,6 @@ pub fn create_redeem_printing_v2_bid_instruction(
             AccountMeta::new(edition_mark_pda, false),
             AccountMeta::new_readonly(new_mint_authority, true),
             AccountMeta::new_readonly(metadata, false),
-            AccountMeta::new_readonly(auction_extended, false),
         ],
         data: MetaplexInstruction::RedeemPrintingV2Bid(RedeemPrintingV2BidArgs {
             edition_offset,
@@ -1101,7 +1303,7 @@ pub fn create_withdraw_master_edition(
 
 /// Creates an RedeemParticipationBidV2 instruction
 #[allow(clippy::too_many_arguments)]
-pub fn create_redeem_participation_bid_v2_instruction(
+pub fn create_redeem_participation_bid_v3_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
     safety_deposit_token_store: Pubkey,
@@ -1109,9 +1311,7 @@ pub fn create_redeem_participation_bid_v2_instruction(
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
     vault: Pubkey,
-    fraction_mint: Pubkey,
     auction: Pubkey,
-    auction_extended: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
     payer: Pubkey,
@@ -1124,7 +1324,18 @@ pub fn create_redeem_participation_bid_v2_instruction(
     new_mint: Pubkey,
     new_mint_authority: Pubkey,
     desired_edition: u64,
+    win_index: Option<u64>,
 ) -> Instruction {
+    let (config, _) = Pubkey::find_program_address(
+        &[
+            PREFIX.as_bytes(),
+            program_id.as_ref(),
+            auction_manager.as_ref(),
+            safety_deposit_box.as_ref(),
+        ],
+        &program_id,
+    );
+
     let (prize_tracking_ticket, _) = Pubkey::find_program_address(
         &[
             PREFIX.as_bytes(),
@@ -1198,7 +1409,7 @@ pub fn create_redeem_participation_bid_v2_instruction(
             AccountMeta::new(bid_redemption, false),
             AccountMeta::new_readonly(safety_deposit_box, false),
             AccountMeta::new_readonly(vault, false),
-            AccountMeta::new_readonly(fraction_mint, false),
+            AccountMeta::new(config, false),
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new_readonly(bidder_metadata, false),
             AccountMeta::new_readonly(bidder, true),
@@ -1221,38 +1432,11 @@ pub fn create_redeem_participation_bid_v2_instruction(
             AccountMeta::new_readonly(new_mint_authority, true),
             AccountMeta::new_readonly(metadata, false),
             AccountMeta::new_readonly(extended, false),
-            AccountMeta::new_readonly(auction_extended, false),
         ],
-        data: MetaplexInstruction::RedeemParticipationBidV2
-            .try_to_vec()
-            .unwrap(),
-    }
-}
-
-/// Creates an EndAuction instruction
-#[allow(clippy::too_many_arguments)]
-pub fn create_end_auction_instruction(
-    program_id: Pubkey,
-    auction_manager: Pubkey,
-    auction: Pubkey,
-    auction_data_extended: Pubkey,
-    auction_manager_authority: Pubkey,
-    store: Pubkey,
-    end_auction_args: EndAuctionArgs,
-) -> Instruction {
-    Instruction {
-        program_id,
-        accounts: vec![
-            AccountMeta::new(auction_manager, false),
-            AccountMeta::new(auction, false),
-            AccountMeta::new_readonly(auction_data_extended, false),
-            AccountMeta::new_readonly(auction_manager_authority, true),
-            AccountMeta::new_readonly(store, false),
-            AccountMeta::new_readonly(spl_auction::id(), false),
-            AccountMeta::new_readonly(sysvar::clock::id(), false),
-        ],
-        data: MetaplexInstruction::EndAuction(end_auction_args)
-            .try_to_vec()
-            .unwrap(),
+        data: MetaplexInstruction::RedeemParticipationBidV3(RedeemParticipationBidV3Args {
+            win_index,
+        })
+        .try_to_vec()
+        .unwrap(),
     }
 }

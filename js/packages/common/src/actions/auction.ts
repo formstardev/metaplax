@@ -15,7 +15,7 @@ import { findProgramAddress } from '../utils';
 export const AUCTION_PREFIX = 'auction';
 export const METADATA = 'metadata';
 export const EXTENDED = 'extended';
-export const MAX_AUCTION_DATA_EXTENDED_SIZE = 8 + 9 + 2 + 9 + 33 + 158;
+export const MAX_AUCTION_DATA_EXTENDED_SIZE = 8 + 9 + 2 + 200;
 
 export enum AuctionState {
   Created = 0,
@@ -47,6 +47,16 @@ export class BidState {
 
     if (convertedIndex >= 0 && convertedIndex < this.bids.length) {
       return this.bids[convertedIndex].key;
+    } else {
+      return null;
+    }
+  }
+
+  public getAmountAt(winnerIndex: number): BN | null {
+    const convertedIndex = this.bids.length - winnerIndex - 1;
+
+    if (convertedIndex >= 0 && convertedIndex < this.bids.length) {
+      return this.bids[convertedIndex].amount;
     } else {
       return null;
     }
@@ -215,8 +225,6 @@ export class AuctionData {
   state: AuctionState;
   /// Auction Bids, each user may have one bid open at a time.
   bidState: BidState;
-  /// Total uncancelled bids
-  totalUncancelledBids: BN;
   /// Used for precalculation on the front end, not a backend key
   bidRedemptionKey?: PublicKey;
 
@@ -285,7 +293,6 @@ export class AuctionData {
     this.priceFloor = args.priceFloor;
     this.state = args.state;
     this.bidState = args.bidState;
-    this.totalUncancelledBids = args.totalUncancelledBids;
   }
 }
 
