@@ -11,7 +11,19 @@ import { processAuctions } from './processAuctions';
 import { processMetaplexAccounts } from './processMetaplexAccounts';
 import { processMetaData } from './processMetaData';
 import { processVaultData } from './processVaultData';
-import { Metadata, ParsedAccount } from '../../../../common/dist/lib';
+import {
+  MAX_CREATOR_LEN,
+  MAX_CREATOR_LIMIT,
+  MAX_NAME_LENGTH,
+  MAX_SYMBOL_LENGTH,
+  MAX_URI_LENGTH,
+  Metadata,
+  ParsedAccount,
+} from '../../../../common/dist/lib';
+import {
+  MAX_WHITELISTED_CREATOR_SIZE,
+  MetaplexKey,
+} from '../../models/metaplex';
 
 export const loadAccounts = async (connection: Connection, all: boolean) => {
   const tempCache: MetaState = {
@@ -47,18 +59,65 @@ export const loadAccounts = async (connection: Connection, all: boolean) => {
       }
     };
 
-  await Promise.all([
+  const promises = [
     connection.getProgramAccounts(VAULT_ID).then(forEach(processVaultData)),
     connection.getProgramAccounts(AUCTION_ID).then(forEach(processAuctions)),
-    connection
-      .getProgramAccounts(METADATA_PROGRAM_ID)
-      .then(forEach(processMetaData)),
+    ,
     connection
       .getProgramAccounts(METAPLEX_ID)
       .then(forEach(processMetaplexAccounts)),
-  ]);
+    connection
+      .getProgramAccounts(METAPLEX_ID, {
+        filters: [
+          {
+            dataSize: MAX_WHITELISTED_CREATOR_SIZE,
+          },
+        ],
+      })
+      .then(async creators => {
+        await forEach(processMetaplexAccounts)(creators);
+
+        const whitelistedCreators = Object.values(
+          tempCache.whitelistedCreatorsByCreator,
+        );
+
+        for (let i = 0; i < MAX_CREATOR_LIMIT; i++) {
+          for (let j = 0; j < whitelistedCreators.length; j++) {
+            promises.push(
+              connection
+                .getProgramAccounts(METADATA_PROGRAM_ID, {
+                  filters: [
+                    {
+                      memcmp: {
+                        offset:
+                          1 + // key
+                          32 + // update auth
+                          32 + // mint
+                          4 + // name string length
+                          MAX_NAME_LENGTH + // name
+                          4 + // uri string length
+                          MAX_URI_LENGTH + // uri
+                          4 + // symbol string length
+                          MAX_SYMBOL_LENGTH + // symbol
+                          2 + // seller fee basis points
+                          1 + // whether or not there is a creators vec
+                          4 + // creators vec length
+                          i * MAX_CREATOR_LEN,
+                        bytes: whitelistedCreators[j].info.address.toBase58(),
+                      },
+                    },
+                  ],
+                })
+                .then(forEach(processMetaData)),
+            );
+          }
+        }
+      }),
+  ];
+  await Promise.all(promises);
 
   await postProcessMetadata(tempCache, all);
+  console.log('Metadata size', tempCache.metadata.length);
 
   return tempCache;
 };
