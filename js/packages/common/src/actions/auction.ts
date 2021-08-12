@@ -6,7 +6,7 @@ import {
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { programIds } from '../utils/programIds';
+import { programIds } from '../utils/ids';
 import { deserializeUnchecked, serialize } from 'borsh';
 import BN from 'bn.js';
 import { AccountParser } from '../contexts';
@@ -41,26 +41,6 @@ export class BidState {
   type: BidStateType;
   bids: Bid[];
   max: BN;
-
-  public getWinnerAt(winnerIndex: number): PublicKey | null {
-    const convertedIndex = this.bids.length - winnerIndex - 1;
-
-    if (convertedIndex >= 0 && convertedIndex < this.bids.length) {
-      return this.bids[convertedIndex].key;
-    } else {
-      return null;
-    }
-  }
-
-  public getAmountAt(winnerIndex: number): BN | null {
-    const convertedIndex = this.bids.length - winnerIndex - 1;
-
-    if (convertedIndex >= 0 && convertedIndex < this.bids.length) {
-      return this.bids[convertedIndex].amount;
-    } else {
-      return null;
-    }
-  }
 
   public getWinnerIndex(bidder: PublicKey): number | null {
     if (!this.bids) return null;
@@ -225,6 +205,8 @@ export class AuctionData {
   state: AuctionState;
   /// Auction Bids, each user may have one bid open at a time.
   bidState: BidState;
+  /// Total uncancelled bids
+  totalUncancelledBids: BN;
   /// Used for precalculation on the front end, not a backend key
   bidRedemptionKey?: PublicKey;
 
@@ -293,6 +275,7 @@ export class AuctionData {
     this.priceFloor = args.priceFloor;
     this.state = args.state;
     this.bidState = args.bidState;
+    this.totalUncancelledBids = args.totalUncancelledBids;
   }
 }
 

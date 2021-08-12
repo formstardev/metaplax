@@ -4,29 +4,19 @@ import {
   PublicKey,
   TransactionInstruction,
 } from '@solana/web3.js';
-import {
-  utils,
-  actions,
-  models,
-  findProgramAddress,
-  MetadataKey,
-} from '@oyster/common';
+import { utils, actions, models, findProgramAddress } from '@oyster/common';
 
 import { AccountLayout } from '@solana/spl-token';
 import BN from 'bn.js';
 import { SafetyDepositDraft } from './createAuctionManager';
-import { SafetyDepositConfig } from '../models/metaplex';
 const { createTokenAccount, addTokenToInactiveVault, VAULT_PREFIX } = actions;
 const { approve } = models;
 
-export interface SafetyDepositInstructionTemplate {
-  box: {
-    tokenAccount?: PublicKey;
-    tokenMint: PublicKey;
-    amount: BN;
-  };
+export interface SafetyDepositInstructionConfig {
+  tokenAccount?: PublicKey;
+  tokenMint: PublicKey;
+  amount: BN;
   draft: SafetyDepositDraft;
-  config: SafetyDepositConfig;
 }
 
 const BATCH_SIZE = 1;
@@ -36,7 +26,7 @@ export async function addTokensToVault(
   connection: Connection,
   wallet: any,
   vault: PublicKey,
-  nfts: SafetyDepositInstructionTemplate[],
+  nfts: SafetyDepositInstructionConfig[],
 ): Promise<{
   instructions: Array<TransactionInstruction[]>;
   signers: Array<Keypair[]>;
@@ -69,12 +59,12 @@ export async function addTokensToVault(
   let currInstructions: TransactionInstruction[] = [];
   for (let i = 0; i < nfts.length; i++) {
     let nft = nfts[i];
-    if (nft.box.tokenAccount) {
+    if (nft.tokenAccount) {
       const newStoreAccount = createTokenAccount(
         currInstructions,
         wallet.publicKey,
         accountRentExempt,
-        nft.box.tokenMint,
+        nft.tokenMint,
         vaultAuthority,
         currSigners,
       );
@@ -83,20 +73,17 @@ export async function addTokensToVault(
       const transferAuthority = approve(
         currInstructions,
         [],
-        nft.box.tokenAccount,
+        nft.tokenAccount,
         wallet.publicKey,
-        nft.box.amount.toNumber(),
+        nft.amount.toNumber(),
       );
 
       currSigners.push(transferAuthority);
 
       await addTokenToInactiveVault(
-        nft.draft.masterEdition &&
-          nft.draft.masterEdition.info.key === MetadataKey.MasterEditionV2
-          ? new BN(1)
-          : nft.box.amount,
-        nft.box.tokenMint,
-        nft.box.tokenAccount,
+        nft.amount,
+        nft.tokenMint,
+        nft.tokenAccount,
         newStoreAccount,
         vault,
         wallet.publicKey,
