@@ -5,18 +5,23 @@ import { Art, Artist, ArtType } from '../types';
 import {
   Edition,
   IMetadataExtension,
-  MasterEdition,
+  MasterEditionV1,
+  MasterEditionV2,
   Metadata,
   ParsedAccount,
 } from '@oyster/common';
 import { WhitelistedCreator } from '../models/metaplex';
 import { Cache } from 'three';
 import { useInView } from 'react-intersection-observer';
+import { pubkeyToString } from '../utils/pubkeyToString';
 
 const metadataToArt = (
   info: Metadata | undefined,
   editions: Record<string, ParsedAccount<Edition>>,
-  masterEditions: Record<string, ParsedAccount<MasterEdition>>,
+  masterEditions: Record<
+    string,
+    ParsedAccount<MasterEditionV1 | MasterEditionV2>
+  >,
   whitelistedCreatorsByCreator: Record<
     string,
     ParsedAccount<WhitelistedCreator>
@@ -132,7 +137,7 @@ export const useArt = (id?: PublicKey | string) => {
   const { metadata, editions, masterEditions, whitelistedCreatorsByCreator } =
     useMeta();
 
-  const key = typeof id === 'string' ? id : id?.toBase58() || '';
+  const key = pubkeyToString(id);
 
   const account = useMemo(
     () => metadata.find(a => a.pubkey.toBase58() === key),
@@ -159,7 +164,7 @@ export const useExtendedArt = (id?: PublicKey | string) => {
   const [data, setData] = useState<IMetadataExtension>();
   const { ref, inView } = useInView();
 
-  const key = typeof id === 'string' ? id : id?.toBase58() || '';
+  const key = pubkeyToString(id);
 
   const account = useMemo(
     () => metadata.find(a => a.pubkey.toBase58() === key),
@@ -209,7 +214,11 @@ export const useExtendedArt = (id?: PublicKey | string) => {
               .then(async _ => {
                 try {
                   const data = await _.json();
-                  localStorage.setItem(uri, JSON.stringify(data));
+                  try {
+                    localStorage.setItem(uri, JSON.stringify(data));
+                  } catch {
+                    // ignore
+                  }
                   setData(processJson(data));
                 } catch {
                   return undefined;

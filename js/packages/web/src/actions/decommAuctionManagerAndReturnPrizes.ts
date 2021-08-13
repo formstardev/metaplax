@@ -1,5 +1,7 @@
 import { Keypair, Connection, TransactionInstruction } from '@solana/web3.js';
 import {
+  BidderMetadata,
+  ParsedAccount,
   sendTransactionsWithManualRetry,
   setAuctionAuthority,
   setVaultAuthority,
@@ -7,7 +9,11 @@ import {
 } from '@oyster/common';
 
 import { AuctionView } from '../hooks';
-import { AuctionManagerStatus } from '../models/metaplex';
+import {
+  AuctionManagerStatus,
+  BidRedemptionTicket,
+  PrizeTrackingTicket,
+} from '../models/metaplex';
 import { decommissionAuctionManager } from '../models/metaplex/decommissionAuctionManager';
 import { claimUnusedPrizes } from './claimUnusedPrizes';
 
@@ -20,10 +26,7 @@ export async function decommAuctionManagerAndReturnPrizes(
   let signers: Array<Keypair[]> = [];
   let instructions: Array<TransactionInstruction[]> = [];
 
-  if (
-    auctionView.auctionManager.info.state.status ===
-    AuctionManagerStatus.Initialized
-  ) {
+  if (auctionView.auctionManager.status === AuctionManagerStatus.Initialized) {
     let decomSigners: Keypair[] = [];
     let decomInstructions: TransactionInstruction[] = [];
 
@@ -59,6 +62,9 @@ export async function decommAuctionManagerAndReturnPrizes(
     wallet,
     auctionView,
     accountsByMint,
+    [],
+    {},
+    {},
     signers,
     instructions,
   );

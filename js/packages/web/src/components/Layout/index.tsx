@@ -1,36 +1,35 @@
 import React from 'react';
 import { Layout } from 'antd';
 
-import './../../App.less';
-import './index.less';
+import { LABELS } from '../../constants';
 import { AppBar } from '../AppBar';
-// import useWindowDimensions from '../../utils/layout';
+import useWindowDimensions from '../../utils/layout';
 
 const { Header, Content } = Layout;
 
+const paddingForLayout = (width: number) => {
+  if (width <= 768) return '5px 10px';
+  if (width > 768) return '10px 30px';
+};
+
 export const AppLayout = React.memo((props: any) => {
-  // const { width } = useWindowDimensions();
+  const { width } = useWindowDimensions();
 
   return (
     <>
-      <Layout id={'main-layout'}>
-        <span id={'main-bg'}></span>
-        <span id={'bg-gradient'}></span>
-        <span id={'static-header-gradient'}></span>
-        <span id={'static-end-gradient'}></span>
+      <Layout
+        title={LABELS.APP_TITLE}
+        style={{
+          padding: paddingForLayout(width),
+          maxWidth: 1000,
+        }}
+      >
         <Header className="App-Bar">
           <AppBar />
         </Header>
-        <Layout id={'width-layout'}>
-          <Content
-            style={{
-              overflow: 'scroll',
-              padding: '30px 48px ',
-            }}
-          >
-            {props.children}
-          </Content>
-        </Layout>
+        <Content style={{ overflow: 'scroll', paddingBottom: 50 }}>
+          {props.children}
+        </Content>
       </Layout>
     </>
   );
