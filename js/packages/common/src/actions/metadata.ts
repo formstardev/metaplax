@@ -237,20 +237,7 @@ export class Metadata {
   }
 
   public async init() {
-    const edition: PublicKey;
-    if (this.info.editionNonce != null) {
-      edition = await PublicKey.createProgramAddress(
-        [
-          Buffer.from(METADATA_PREFIX),
-          METADATA_PROGRAM_ID.toBuffer(),
-          tempCache.metadata[i].info.mint.toBuffer(),
-          new Uint8Array([tempCache.metadata[i].info.editionNonce || 0]),
-        ],
-        METADATA_PROGRAM_ID,
-      );
-    } else {
-      edition = await getEdition(tempCache.metadata[i].info.mint);
-    }
+    const edition = await getEdition(this.mint);
     this.edition = edition;
     this.masterEdition = edition;
   }

@@ -320,15 +320,6 @@ export class RedeemFullRightsTransferBidArgs {
 export class StartAuctionArgs {
   instruction = 5;
 }
-
-export class EndAuctionArgs {
-  instruction = 21;
-  reveal: BN[] | null;
-  constructor(args: { reveal: BN[] | null }) {
-    this.reveal = args.reveal;
-  }
-}
-
 export class ClaimBidArgs {
   instruction = 6;
 }
@@ -960,16 +951,6 @@ export const SCHEMA = new Map<any, any>([
     {
       kind: 'struct',
       fields: [['instruction', 'u8']],
-    },
-  ],
-  [
-    EndAuctionArgs,
-    {
-      kind: 'struct',
-      fields: [
-        ['instruction', 'u8'],
-        ['reveal', { kind: 'option', type: [BN] }],
-      ],
     },
   ],
   [
