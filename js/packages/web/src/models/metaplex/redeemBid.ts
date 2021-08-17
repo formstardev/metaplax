@@ -1,5 +1,11 @@
 import {
   findProgramAddress,
+  getAuctionExtended,
+  programIds,
+  VAULT_PREFIX,
+} from '@oyster/common';
+import {
+  findProgramAddress,
   programIds,
   StringPublicKey,
   toPublicKey,
@@ -67,6 +73,11 @@ export async function redeemBid(
     auctionManagerKey,
     safetyDeposit,
   );
+
+  const auctionExtended = await getAuctionExtended({
+    auctionProgramId: PROGRAM_IDS.auction,
+    resource: vault,
+  });
 
   const value =
     auctioneerReclaimIndex !== undefined
@@ -169,6 +180,11 @@ export async function redeemBid(
     },
     {
       pubkey: toPublicKey(safetyDepositConfig),
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: auctionExtended,
       isSigner: false,
       isWritable: false,
     },

@@ -37,10 +37,7 @@ import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
 import { capitalize } from 'lodash';
-import {
-  WinningConfigType,
-  AmountRange,
-} from '../../models/metaplex';
+import { WinningConfigType, AmountRange } from '../../models/metaplex';
 import moment from 'moment';
 import {
   createAuctionManager,
@@ -121,6 +118,8 @@ export interface AuctionState {
   tiers?: Array<Tier>;
 
   winnersCount: number;
+
+  instantSalePrice?: number;
 }
 
 export const AuctionCreateView = () => {
@@ -197,8 +196,8 @@ export const AuctionCreateView = () => {
           item.winningConfigType =
             item.metadata.info.updateAuthority ===
             (wallet?.publicKey || SystemProgram.programId).toBase58()
-            ? WinningConfigType.FullRightsTransfer
-            : WinningConfigType.TokenOnlyTransfer;
+              ? WinningConfigType.FullRightsTransfer
+              : WinningConfigType.TokenOnlyTransfer;
         }
         item.amountRanges = [
           new AmountRange({
@@ -410,6 +409,10 @@ export const AuctionCreateView = () => {
       tickSize: attributes.priceTick
         ? new BN(attributes.priceTick * LAMPORTS_PER_SOL)
         : null,
+      instantSalePrice: attributes.instantSalePrice
+        ? new BN((attributes.instantSalePrice || 0) * LAMPORTS_PER_SOL)
+        : null,
+      name: null,
     };
 
     const _auctionObj = await createAuctionManager(
@@ -853,6 +856,22 @@ const SaleTypeStep = (props: {
                 Allow bidding on your NFT(s).
               </div>
             </Radio.Group>
+            <Radio.Group
+              defaultValue={props.attributes.saleType}
+              onChange={info =>
+                props.setAttributes({
+                  ...props.attributes,
+                  saleType: info.target.value,
+                })
+              }
+            >
+              <Radio className="radio-field" value="auction">
+                Instant Sale
+              </Radio>
+              <div className="radio-subtitle">
+                Instant purchase and redemption of your NFT.
+              </div>
+            </Radio.Group>
           </label>
         </Col>
       </Row>
@@ -895,13 +914,13 @@ const PriceSale = (props: {
     <>
       <Row className="call-to-action">
         <h2>Price</h2>
-        <p>Set the price for your auction.</p>
+        <p>Set the fixed price for your instant sale.</p>
       </Row>
       <Row className="content-action">
         <label className="action-field">
           <span className="field-title">Sale price</span>
           <span className="field-info">
-            This is the starting bid price for your auction.
+            This is the price of purchasing the item(s).
           </span>
           <Input
             type="number"
@@ -914,7 +933,8 @@ const PriceSale = (props: {
             onChange={info =>
               props.setAttributes({
                 ...props.attributes,
-                price: parseFloat(info.target.value) || undefined,
+                priceFloor: parseFloat(info.target.value),
+                instantSalePrice: parseFloat(info.target.value),
               })
             }
           />
@@ -1225,7 +1245,10 @@ const EndingPhaseAuction = (props: {
       <Row className="content-action">
         <Col className="section" xl={24}>
           <div className="action-field">
-            <span className="field-title">Auction Duration</span>
+            <span className="field-title">
+              {props.attributes.saleType == 'auction' ? 'Auction' : 'Sale'}{' '}
+              Duration
+            </span>
             <span className="field-info">
               This is how long the auction will last for.
             </span>
@@ -1258,61 +1281,65 @@ const EndingPhaseAuction = (props: {
             />
           </div>
 
-          <div className="action-field">
-            <span className="field-title">Gap Time</span>
-            <span className="field-info">
-              The final phase of the auction will begin when there is this much
-              time left on the countdown. Any bids placed during the final phase
-              will extend the end time by this same duration.
-            </span>
-            <Input
-              addonAfter={
-                <Select
-                  defaultValue={props.attributes.gapTimeType}
-                  onChange={value =>
+          {props.attributes.saleType == 'auction' && (
+            <>
+              <div className="action-field">
+                <span className="field-title">Gap Time</span>
+                <span className="field-info">
+                  The final phase of the auction will begin when there is this
+                  much time left on the countdown. Any bids placed during the
+                  final phase will extend the end time by this same duration.
+                </span>
+                <Input
+                  addonAfter={
+                    <Select
+                      defaultValue={props.attributes.gapTimeType}
+                      onChange={value =>
+                        props.setAttributes({
+                          ...props.attributes,
+                          gapTimeType: value,
+                        })
+                      }
+                    >
+                      <Option value="minutes">Minutes</Option>
+                      <Option value="hours">Hours</Option>
+                      <Option value="days">Days</Option>
+                    </Select>
+                  }
+                  type="number"
+                  className="input"
+                  placeholder="Set the gap time"
+                  onChange={info =>
                     props.setAttributes({
                       ...props.attributes,
-                      gapTimeType: value,
+                      gapTime: parseInt(info.target.value),
                     })
                   }
-                >
-                  <Option value="minutes">Minutes</Option>
-                  <Option value="hours">Hours</Option>
-                  <Option value="days">Days</Option>
-                </Select>
-              }
-              type="number"
-              className="input"
-              placeholder="Set the gap time"
-              onChange={info =>
-                props.setAttributes({
-                  ...props.attributes,
-                  gapTime: parseInt(info.target.value),
-                })
-              }
-            />
-          </div>
+                />
+              </div>
 
-          <label className="action-field">
-            <span className="field-title">Tick Size for Ending Phase</span>
-            <span className="field-info">
-              In order for winners to move up in the auction, they must place a
-              bid that’s at least this percentage higher than the next highest
-              bid.
-            </span>
-            <Input
-              type="number"
-              className="input"
-              placeholder="Percentage"
-              suffix="%"
-              onChange={info =>
-                props.setAttributes({
-                  ...props.attributes,
-                  tickSizeEndingPhase: parseInt(info.target.value),
-                })
-              }
-            />
-          </label>
+              <label className="action-field">
+                <span className="field-title">Tick Size for Ending Phase</span>
+                <span className="field-info">
+                  In order for winners to move up in the auction, they must
+                  place a bid that’s at least this percentage higher than the
+                  next highest bid.
+                </span>
+                <Input
+                  type="number"
+                  className="input"
+                  placeholder="Percentage"
+                  suffix="%"
+                  onChange={info =>
+                    props.setAttributes({
+                      ...props.attributes,
+                      tickSizeEndingPhase: parseInt(info.target.value),
+                    })
+                  }
+                />
+              </label>
+            </>
+          )}
         </Col>
       </Row>
       <Row>
@@ -1485,12 +1512,12 @@ const TierTableStep = (props: {
 
                     const newTiers = newImmutableTiers(props.attributes.tiers);
                     if (items[0]) {
-                      const existing = props.attributes.items.find(it =>
-                        it.metadata.pubkey === items[0].metadata.pubkey,
+                      const existing = props.attributes.items.find(
+                        it => it.metadata.pubkey === items[0].metadata.pubkey,
                       );
                       if (!existing) newItems.push(items[0]);
-                      const index = newItems.findIndex(it =>
-                        it.metadata.pubkey === items[0].metadata.pubkey,
+                      const index = newItems.findIndex(
+                        it => it.metadata.pubkey === items[0].metadata.pubkey,
                       );
 
                       const myNewTier = newTiers[configIndex].items[itemIndex];
