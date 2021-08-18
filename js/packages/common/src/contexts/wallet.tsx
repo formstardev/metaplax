@@ -1,7 +1,7 @@
-import { WalletAdapter } from '@solana/wallet-base';
+import { WalletAdapter } from "@solana/wallet-base";
 
 import Wallet from '@project-serum/sol-wallet-adapter';
-import { Button } from 'antd';
+import { Button, Collapse } from "antd";
 import React, {
   useCallback,
   useContext,
@@ -17,6 +17,8 @@ import { useLocation } from 'react-router';
 import { MetaplexModal } from '../components/MetaplexModal';
 import { TorusWalletAdapter } from '../wallet-adapters/torus';
 import { SolflareWalletAdapter } from '../wallet-adapters/solflare';
+
+const { Panel } = Collapse;
 
 const ASSETS_URL =
   'https://raw.githubusercontent.com/solana-labs/oyster/main/assets/wallets/';
@@ -142,12 +144,10 @@ export function WalletProvider({ children = null as any }) {
   }, [wallet, autoConnect]);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [showProviders, setShowProviders] = useState(false);
 
   const select = useCallback(() => setIsModalVisible(true), []);
   const close = useCallback(() => {
-    setIsModalVisible(false);
-    setShowProviders(false);
+    setIsModalVisible(false)
   }, []);
 
   const pp = WALLET_PROVIDERS.find(wp => wp.name === 'Phantom');
@@ -162,99 +162,75 @@ export function WalletProvider({ children = null as any }) {
       }}
     >
       {children}
-      <MetaplexModal visible={isModalVisible} onCancel={close}>
-        <div
-          style={{
-            background:
-              'linear-gradient(180deg, #D329FC 0%, #8F6DDE 49.48%, #19E6AD 100%)',
-            borderRadius: 36,
-            width: 50,
-            height: 50,
-            textAlign: 'center',
-            verticalAlign: 'middle',
-            fontWeight: 700,
-            fontSize: '1.3rem',
-            lineHeight: 2.4,
-            marginBottom: 10,
+      <MetaplexModal
+        title="Connect Wallet"
+        visible={isModalVisible}
+        onCancel={close}
+      >
+
+        <span style={{
+          color: "rgba(255, 255, 255, 0.75)",
+          fontSize: "14px",
+          lineHeight: "14px",
+          fontFamily: "GraphikWeb",
+          letterSpacing: "0.02em",
+          marginBottom: 14
+        }}>RECOMMENDED</span>
+
+        <Button
+          className="phantom-button metaplex-button"
+          onClick={() => {
+            setProviderUrl(pp?.url);
+            setAutoConnect(true);
+            close();
           }}
+          disabled={providerUrl === pp?.url}
         >
-          M
-        </div>
+          <img src={pp?.icon} style={{ width: '1.2rem' }} />&nbsp;Connect to Phantom
+        </Button>
 
-        <h2>{provider ? 'Change provider' : 'Welcome to Metaplex'}</h2>
-        <p>
-          {provider
-            ? 'Feel free to switch wallet provider'
-            : 'You must be signed in to place a bid'}
-        </p>
-
-        <br />
-
-        {provider || showProviders ? (
-          <>
+        <Collapse ghost expandIcon={
+          (panelProps) => panelProps.isActive ? (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 7.5L10 12.5L5 7.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          ) :(
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7.5 5L12.5 10L7.5 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          )
+        }>
+          <Panel header={<span style={{
+            fontWeight: 600,
+            fontSize: "16px",
+            lineHeight: "16px",
+            letterSpacing: "-0.01em"
+          }}>Other Wallets</span>} key="1">
             {WALLET_PROVIDERS.map((provider, idx) => {
-              if (providerUrl === provider.url) return null;
+              if (provider.url === providerUrl) return null
+              if (provider.name === "Phantom") return null
 
-              const onClick = function () {
-                setProviderUrl(provider.url);
-                setAutoConnect(true);
-                close();
-              };
               return (
                 <Button
                   key={idx}
-                  size="large"
-                  type={providerUrl === provider.url ? 'primary' : 'ghost'}
-                  onClick={onClick}
-                  icon={
-                    <img
-                      alt={`${provider.name}`}
-                      width={20}
-                      height={20}
-                      src={provider.icon}
-                      style={{ marginRight: 8 }}
-                    />
-                  }
+                  className="metaplex-button w100"
                   style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    marginBottom: 8,
+                    marginBottom: 5,
+                  }}
+                  disabled={providerUrl === provider.url}
+                  onClick={() => {
+                    setProviderUrl(provider.url);
+                    setAutoConnect(true);
+                    close();
                   }}
                 >
-                  {provider.name}
+                  Connect to {provider.name}
                 </Button>
-              );
+              )
             })}
-          </>
-        ) : (
-          <>
-            <Button
-              className="metaplex-button"
-              style={{
-                width: '80%',
-                fontWeight: 'unset',
-              }}
-              onClick={_ => {
-                setProviderUrl(pp?.url);
-                setAutoConnect(true);
-                close();
-              }}
-            >
-              <span>
-                <img src={pp?.icon} style={{ width: '1.2rem' }} />
-                &nbsp;Sign in with Phantom
-              </span>
-              <span>&gt;</span>
-            </Button>
-            <p
-              onClick={_ => setShowProviders(true)}
-              style={{ cursor: 'pointer', marginTop: 10 }}
-            >
-              Select a different Solana wallet
-            </p>
-          </>
-        )}
+          </Panel>
+        </Collapse>
+
       </MetaplexModal>
     </WalletContext.Provider>
   );

@@ -89,6 +89,11 @@ export function Routes() {
                             path="/auction/:id/billing"
                             component={() => <BillingView />}
                           />
+                          {/*<Route*/}
+                          {/*  exact*/}
+                          {/*  path="/static-page"*/}
+                          {/*  component={() => <StaticPageView />}*/}
+                          {/*/>*/}
                           <Route path="/" component={() => <HomeView />} />
                         </Switch>
                       </AppLayout>

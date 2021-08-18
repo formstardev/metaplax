@@ -1,5 +1,4 @@
 import {
-  PublicKey,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
@@ -7,12 +6,7 @@ import {
 import { programIds } from '../utils/programIds';
 import { deserializeUnchecked, serialize } from 'borsh';
 import BN from 'bn.js';
-import {
-  findProgramAddress,
-  METADATA_PROGRAM_ID,
-  StringPublicKey,
-  toPublicKey,
-} from '../utils';
+import { findProgramAddress, StringPublicKey, toPublicKey } from '../utils';
 export const METADATA_PREFIX = 'metadata';
 export const EDITION = 'edition';
 export const RESERVATION = 'reservation';
@@ -250,23 +244,9 @@ export class Metadata {
   }
 
   public async init() {
-    const metadata = toPublicKey(programIds().metadata);
-    if (this.editionNonce != null) {
-      this.edition = (
-        await PublicKey.createProgramAddress(
-          [
-            Buffer.from(METADATA_PREFIX),
-            metadata.toBuffer(),
-            toPublicKey(this.mint).toBuffer(),
-            new Uint8Array([this.editionNonce || 0]),
-          ],
-          metadata,
-        )
-      ).toBase58();
-    } else {
-      this.edition = await getEdition(this.mint);
-    }
-    this.masterEdition = this.edition;
+    const edition = await getEdition(this.mint);
+    this.edition = edition;
+    this.masterEdition = edition;
   }
 }
 

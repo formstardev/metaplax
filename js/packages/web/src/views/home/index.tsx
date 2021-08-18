@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Layout, Row, Col, Tabs, Button } from 'antd';
 import Masonry from 'react-masonry-css';
+import { HowToBuyModal } from '../../components/HowToBuyModal';
 
-import { PreSaleBanner } from '../../components/PreSaleBanner';
 import { AuctionViewState, useAuctions, AuctionView } from '../../hooks';
 
 import { AuctionRenderCard } from '../../components/AuctionRenderCard';
@@ -13,7 +13,7 @@ import BN from 'bn.js';
 import { programIds, useConnection, useWallet } from '@oyster/common';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { WhitelistedCreator } from '../../models/metaplex';
-
+import { Banner } from '../../components/Banner';
 
 const { TabPane } = Tabs;
 
@@ -29,6 +29,7 @@ export enum LiveAuctionViewState {
 export const HomeView = () => {
   const auctions = useAuctions(AuctionViewState.Live);
   const auctionsEnded = useAuctions(AuctionViewState.Ended);
+  const auctionsUpcoming = useAuctions(AuctionViewState.Upcoming);
   const [activeKey, setActiveKey] = useState(LiveAuctionViewState.All);
   const { isLoading, store } = useMeta();
   const [isInitalizingStore, setIsInitalizingStore] = useState(false);
@@ -102,10 +103,6 @@ export const HomeView = () => {
     >
       {!isLoading
         ? items.map((m, idx) => {
-              if (m === heroAuction) {
-                return;
-              }
-
             const id = m.auction.pubkey;
             return (
               <Link to={`/auction/${id}`} key={idx}>
@@ -139,11 +136,29 @@ export const HomeView = () => {
         : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
+  const upcomingAuctions = (
+    <Masonry
+      breakpointCols={breakpointColumnsObj}
+      className="my-masonry-grid"
+      columnClassName="my-masonry-grid_column"
+    >
+      {!isLoading
+        ? auctionsUpcoming.map((m, idx) => {
+            const id = m.auction.pubkey.toBase58();
+            return (
+              <Link to={`/auction/${id}`} key={idx}>
+                <AuctionRenderCard key={id} auctionView={m} />
+              </Link>
+            );
+          })
+        : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
+    </Masonry>
+  );
 
   const CURRENT_STORE = programIds().store;
 
   return (
-    <Layout style={{ margin: 0, marginTop: 30, alignItems: 'center' }}>
+    <Layout style={{ margin: 0, alignItems: 'center' }}>
       {!store && !isLoading && (
         <>
           {!CURRENT_STORE && (
@@ -197,48 +212,46 @@ export const HomeView = () => {
           )}
         </>
       )}
-      <PreSaleBanner auction={heroAuction} />
+      {/* <PreSaleBanner auction={heroAuction} /> */}
+      <Banner
+        src={'/main-banner.svg'}
+        headingText={'The amazing world of McFarlane.'}
+        subHeadingText={'Buy exclusive McFarlane NFTs.'}
+        actionComponent={<HowToBuyModal buttonClassName="secondary-btn" />}
+        useBannerBg={true}
+      />
       <Layout>
         <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
-          <Col style={{ width: '100%', marginTop: 10 }}>
-            {liveAuctions.length >= 0 && (<Row>
+          <Col style={{ width: '100%', marginTop: 32 }}>
+            <Row>
               <Tabs activeKey={activeKey}
                   onTabClick={key => setActiveKey(key as LiveAuctionViewState)}>
+                <TabPane
+                  tab={
+                    <>
+                      <span className={'live'}></span> Live
+                    </>
+                  }
+                  key={LiveAuctionViewState.All}
+                >
+                  {liveAuctionsView}
+                </TabPane>
+                <TabPane tab={'Upcoming'} key={2}>
+                  {upcomingAuctions}
+                </TabPane>
+                {auctionsEnded.length > 0 && (
                   <TabPane
-                    tab={<span className="tab-title">Live Auctions</span>}
-                    key={LiveAuctionViewState.All}
-                  >
-                    {liveAuctionsView}
-                  </TabPane>
-                  {auctionsEnded.length > 0 && (
-                  <TabPane
-                    tab={<span className="tab-title">Secondary Marketplace</span>}
+                    tab={'Secondary Marketplace'}
                     key={LiveAuctionViewState.Resale}
                   >
                     {liveAuctionsView}
                   </TabPane>
-                  )}
-                  {auctionsEnded.length > 0 && (
-                  <TabPane
-                    tab={<span className="tab-title">Ended Auctions</span>}
-                    key={LiveAuctionViewState.Ended}
-                  >
-                    {endedAuctions}
-                  </TabPane>
-                  )}
-                  {
-                    // Show all participated live and ended auctions except hero auction
-                  }
-                  {connected && (
-                    <TabPane
-                      tab={<span className="tab-title">Participated</span>}
-                      key={LiveAuctionViewState.Participated}
-                    >
-                      {liveAuctionsView}
-                    </TabPane>
-                  )}
+                )}
+                <TabPane tab={'Ended'} key={3}>
+                  {endedAuctions}
+                </TabPane>
               </Tabs>
-            </Row>)}
+            </Row>
           </Col>
         </Content>
       </Layout>

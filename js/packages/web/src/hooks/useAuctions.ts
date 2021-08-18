@@ -11,7 +11,6 @@ import {
   MasterEditionV2,
   useWallet,
   StringPublicKey,
-  AuctionDataExtended,
 } from '@oyster/common';
 import BN from 'bn.js';
 import { useEffect, useState } from 'react';
@@ -23,7 +22,6 @@ import {
   BidRedemptionTicket,
   BidRedemptionTicketV2,
   getBidderKeys,
-  MetaplexKey,
   SafetyDepositConfig,
   WinningConfigType,
 } from '../models/metaplex';
@@ -51,7 +49,6 @@ export interface AuctionView {
   // once tiered auctions come along, this becomes an array of arrays.
   items: AuctionViewItem[][];
   auction: ParsedAccount<AuctionData>;
-  auctionDataExtended?: ParsedAccount<AuctionDataExtended>;
   auctionManager: AuctionManager;
   participationItem?: AuctionViewItem;
   state: AuctionViewState;
@@ -61,7 +58,6 @@ export interface AuctionView {
   myBidRedemption?: ParsedAccount<BidRedemptionTicket>;
   vault: ParsedAccount<Vault>;
   totallyComplete: boolean;
-  isInstantSale: boolean;
 }
 
 export function useCachedRedemptionKeysByWallet() {
@@ -138,7 +134,6 @@ export const useAuctions = (state?: AuctionViewState) => {
     metadataByMasterEdition,
     safetyDepositConfigsByAuctionManagerAndIndex,
     bidRedemptionV2sByAuctionManagerAndWinningIndex,
-    auctionDataExtended,
   } = useMeta();
 
   useEffect(() => {
@@ -147,7 +142,6 @@ export const useAuctions = (state?: AuctionViewState) => {
       const nextAuctionView = processAccountsIntoAuctionView(
         pubkey,
         auction,
-        auctionDataExtended,
         auctionManagersByAuction,
         safetyDepositBoxesByVaultAndIndex,
         metadataByMint,
@@ -179,7 +173,6 @@ export const useAuctions = (state?: AuctionViewState) => {
   }, [
     state,
     auctions,
-    auctionDataExtended,
     auctionManagersByAuction,
     safetyDepositBoxesByVaultAndIndex,
     metadataByMint,
@@ -200,17 +193,6 @@ export const useAuctions = (state?: AuctionViewState) => {
   return auctionViews;
 };
 
-function isInstantSale(
-  auctionDataExt: ParsedAccount<AuctionDataExtended> | null,
-  auction: ParsedAccount<AuctionData>,
-) {
-  return !!(
-    auctionDataExt?.info.instantSalePrice &&
-    auction.info.priceFloor.minPrice &&
-    auctionDataExt?.info.instantSalePrice.eq(auction.info.priceFloor.minPrice)
-  );
-}
-
 function buildListWhileNonZero<T>(hash: Record<string, T>, key: string) {
   const list: T[] = [];
   let ticket = hash[key + '-0'];
@@ -229,7 +211,6 @@ function buildListWhileNonZero<T>(hash: Record<string, T>, key: string) {
 export function processAccountsIntoAuctionView(
   walletPubkey: StringPublicKey | null | undefined,
   auction: ParsedAccount<AuctionData>,
-  auctionDataExtended: Record<string, ParsedAccount<AuctionDataExtended>>,
   auctionManagersByAuction: Record<
     string,
     ParsedAccount<AuctionManagerV1 | AuctionManagerV2>
@@ -329,15 +310,6 @@ export function processAccountsIntoAuctionView(
       bidRedemptions,
     });
 
-    const auctionDataExtendedKey =
-      auctionManagerInstance.info.key == MetaplexKey.AuctionManagerV2
-        ? (auctionManagerInstance as ParsedAccount<AuctionManagerV2>).info
-            .auctionDataExtended
-        : null;
-    const auctionDataExt = auctionDataExtendedKey
-      ? auctionDataExtended[auctionDataExtendedKey]
-      : null;
-
     const boxesExpected = auctionManager.safetyDepositBoxesExpected.toNumber();
 
     let bidRedemption: ParsedAccount<BidRedemptionTicket> | undefined =
@@ -358,11 +330,6 @@ export function processAccountsIntoAuctionView(
       existingAuctionView.myBidderPot = bidderPot;
       existingAuctionView.myBidderMetadata = bidderMetadata;
       existingAuctionView.myBidRedemption = bidRedemption;
-      existingAuctionView.auctionDataExtended = auctionDataExt || undefined;
-      existingAuctionView.isInstantSale = isInstantSale(
-        auctionDataExt,
-        auction,
-      );
       for (let i = 0; i < existingAuctionView.items.length; i++) {
         const winningSet = existingAuctionView.items[i];
         for (let j = 0; j < winningSet.length; j++) {
@@ -435,7 +402,6 @@ export function processAccountsIntoAuctionView(
         auctionManager,
         state,
         vault,
-        auctionDataExtended: auctionDataExt || undefined,
         items: auctionManager.getItemsFromSafetyDepositBoxes(
           metadataByMint,
           masterEditionsByPrintingMint,
@@ -460,8 +426,6 @@ export function processAccountsIntoAuctionView(
 
       view.thumbnail =
         ((view.items || [])[0] || [])[0] || view.participationItem;
-
-      view.isInstantSale = isInstantSale(auctionDataExt, auction);
 
       view.totallyComplete = !!(
         view.thumbnail &&
