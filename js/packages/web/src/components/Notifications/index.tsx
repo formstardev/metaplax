@@ -1,7 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import {
-  BellFilled,
-  BellOutlined,
   CheckCircleTwoTone,
   LoadingOutlined,
   PlayCircleOutlined,
@@ -19,6 +16,7 @@ import {
 } from '@oyster/common';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Badge, Popover, List } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { closePersonalEscrow } from '../../actions/closePersonalEscrow';
 import { decommAuctionManagerAndReturnPrizes } from '../../actions/decommAuctionManagerAndReturnPrizes';
@@ -131,7 +129,9 @@ export function useCollapseWrappedSol({
     const ata = await getPersonalEscrowAta(wallet);
     if (ata) {
       try {
-        const balance = await connection.getTokenAccountBalance(toPublicKey(ata));
+        const balance = await connection.getTokenAccountBalance(
+          toPublicKey(ata),
+        );
 
         if ((balance && balance.value.uiAmount) || 0 > 0) {
           setShowNotification(true);
@@ -216,8 +216,7 @@ export function useSettlementAuctions({
             ) {
               setValidDiscoveredEndedAuctions(old => ({
                 ...old,
-                [av.auctionManager.pubkey]:
-                  balance.value.uiAmount || 0,
+                [av.auctionManager.pubkey]: balance.value.uiAmount || 0,
               }));
             }
           } catch (e) {
@@ -369,7 +368,7 @@ export function Notifications() {
               connection,
               wallet,
               v,
-              accountByMint,
+              safetyDepositBoxesByVaultAndIndex,
             );
           } catch (e) {
             console.error(e);
@@ -402,8 +401,8 @@ export function Notifications() {
       title: 'You have a new artwork to approve!',
       description: (
         <span>
-          {whitelistedCreatorsByCreator[m.info.updateAuthority]?.info
-            ?.name || m.pubkey}{' '}
+          {whitelistedCreatorsByCreator[m.info.updateAuthority]?.info?.name ||
+            m.pubkey}{' '}
           wants you to approve that you helped create their art{' '}
           <Link to={`/art/${m.pubkey}`}>here.</Link>
         </span>
@@ -481,8 +480,13 @@ export function Notifications() {
   );
 
   const justContent = (
-    <Popover placement="bottomLeft" content={content} trigger="click">
-      <img src={'/bell.svg'} style={{ cursor: 'pointer' }} />
+    <Popover
+      className="noty-popover"
+      placement="bottomLeft"
+      content={content}
+      trigger="click"
+    >
+      <h1 className="title">M</h1>
     </Popover>
   );
 
