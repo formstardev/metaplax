@@ -1,26 +1,45 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Dropdown, Menu } from 'antd';
-import { ConnectButton, useWallet } from '@oyster/common';
+import { ConnectButton, CurrentUserBadge, useWallet } from '@oyster/common';
 import { Notifications } from '../Notifications';
 import useWindowDimensions from '../../utils/layout';
 import { MenuOutlined } from '@ant-design/icons';
 import { useMeta } from '../../contexts';
-import { HowToBuyModal } from '../HowToBuyModal';
-import { CurrentUserBadge, Cog } from '../CurrentUserBadge';
 
-const getDefaultLinkActions = (connected: boolean) => {
-  return [
-    // <Link to={`/artwork`} key={'artwork'}>
-    //   <Button className="app-btn">{connected ? 'My Items' : 'Artwork'}</Button>
-    // </Link>,
-    // <Link to={`/artists`} key={'artists'}>
-    //   <Button className="app-btn">Creators</Button>
-    // </Link>,
-    // <Link to={`/artistAlley`} key={'artistalley'}>
-    //   <Button className="app-btn">Artist Alley</Button>
-    // </Link>,
-  ];
+const UserActions = () => {
+  const { wallet } = useWallet();
+  const { whitelistedCreatorsByCreator, store } = useMeta();
+  const pubkey = wallet?.publicKey?.toBase58() || '';
+
+  const canCreate = useMemo(() => {
+    return (
+      store?.info?.public ||
+      whitelistedCreatorsByCreator[pubkey]?.info?.activated
+    );
+  }, [pubkey, whitelistedCreatorsByCreator, store]);
+
+  return (
+    <>
+      {store && (
+        <>
+          {/* <Link to={`#`}>
+            <Button className="app-btn">Bids</Button>
+          </Link> */}
+          {canCreate ? (
+            <Link to={`/art/create`}>
+              <Button className="app-btn">Create</Button>
+            </Link>
+          ) : null}
+          <Link to={`/auction/create/0`}>
+            <Button className="connector" type="primary">
+              Sell
+            </Button>
+          </Link>
+        </>
+      )}
+    </>
+  );
 };
 
 const DefaultActions = ({ vertical = false }: { vertical?: boolean }) => {
@@ -32,7 +51,17 @@ const DefaultActions = ({ vertical = false }: { vertical?: boolean }) => {
         flexDirection: vertical ? 'column' : 'row',
       }}
     >
-      {getDefaultLinkActions(connected)}
+      <Link to={`/`}>
+        <Button className="app-btn">Explore</Button>
+      </Link>
+      <Link to={`/artworks`}>
+        <Button className="app-btn">
+          {connected ? 'My Items' : 'Artworks'}
+        </Button>
+      </Link>
+      <Link to={`/artists`}>
+        <Button className="app-btn">Creators</Button>
+      </Link>
     </div>
   );
 };
@@ -50,9 +79,23 @@ const MetaplexMenu = () => {
           trigger={['click']}
           overlay={
             <Menu>
-              {getDefaultLinkActions(connected).map((item, idx) => (
-                <Menu.Item key={idx}>{item}</Menu.Item>
-              ))}
+              <Menu.Item>
+                <Link to={`/`}>
+                  <Button className="app-btn">Explore</Button>
+                </Link>
+              </Menu.Item>
+              <Menu.Item>
+                <Link to={`/artworks`}>
+                  <Button className="app-btn">
+                    {connected ? 'My Items' : 'Artworks'}
+                  </Button>
+                </Link>
+              </Menu.Item>
+              <Menu.Item>
+                <Link to={`/artists`}>
+                  <Button className="app-btn">Creators</Button>
+                </Link>
+              </Menu.Item>
             </Menu>
           }
         >
@@ -64,34 +107,27 @@ const MetaplexMenu = () => {
   return <DefaultActions />;
 };
 
-export const LogoLink = () => {
-  return (
-    <Link to={`/`}>
-      <img src={'/metaplex-logo.svg'} />
-    </Link>
-  );
-};
-
 export const AppBar = () => {
   const { connected } = useWallet();
+
   return (
     <>
-      <div className="app-left">
-        <LogoLink />
-        &nbsp;&nbsp;&nbsp;
+      <div className="app-left app-bar-box">
+        {window.location.hash !== '#/analytics' && <Notifications />}
+        <div className="divider" />
         <MetaplexMenu />
       </div>
-      <div className="app-right">
-        {!connected && <HowToBuyModal buttonClassName="modal-button-default" />}
-        {!connected && <ConnectButton style={{ height: 48 }} />}
-        {connected && (
-          <>
-            <CurrentUserBadge showBalance={false} showAddress iconSize={24} />
-            <Notifications />
-            <Cog />
-          </>
-        )}
-      </div>
+      {!connected && <ConnectButton type="primary" />}
+      {connected && (
+        <div className="app-right app-bar-box">
+          <UserActions />
+          <CurrentUserBadge
+            showBalance={false}
+            showAddress={false}
+            iconSize={24}
+          />
+        </div>
+      )}
     </>
   );
 };
