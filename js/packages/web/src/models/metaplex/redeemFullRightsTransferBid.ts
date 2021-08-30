@@ -67,6 +67,11 @@ export async function redeemFullRightsTransferBid(
     safetyDeposit,
   );
 
+  const auctionExtended = await getAuctionExtended({
+    auctionProgramId: PROGRAM_IDS.auction,
+    resource: vault,
+  });
+
   const value =
     auctioneerReclaimIndex !== undefined
       ? new RedeemUnusedWinningConfigItemsAsAuctioneerArgs({
@@ -178,6 +183,12 @@ export async function redeemFullRightsTransferBid(
     },
     {
       pubkey: toPublicKey(safetyDepositConfig),
+      isSigner: false,
+      isWritable: false,
+    },
+
+    {
+      pubkey: auctionExtended,
       isSigner: false,
       isWritable: false,
     },
