@@ -19,6 +19,7 @@ import {
   BidderMetadata,
   MAX_METADATA_LEN,
   MAX_EDITION_LEN,
+  placeBid,
   useWalletModal,
 } from '@oyster/common';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -373,13 +374,7 @@ export const AuctionCard = ({
               onClick={() => setShowBidModal(true)}
               style={{ marginTop: 20 }}
             >
-              {loading ? (
-                <Spin />
-              ) : auctionView.isInstantSale ? (
-                'Buy Now'
-              ) : (
-                'Place bid'
-              )}
+              {loading ? <Spin /> : 'Place bid'}
             </Button>
           ))}
 
@@ -486,51 +481,9 @@ export const AuctionCard = ({
                 }
               };
 
-              const instantSale = async () => {
-                setLoading(true);
-
-                // Placing a "bid" of the full amount results in a purchase to redeem.
-                if (
-                  myPayingAccount &&
-                  auctionView.auctionDataExtended?.info.instantSalePrice
-                ) {
-                  await sendPlaceBid(
-                    connection,
-                    wallet,
-                    myPayingAccount.pubkey,
-                    auctionView,
-                    accountByMint,
-                    auctionView.auctionDataExtended?.info.instantSalePrice,
-                  );
-                  setShowBidModal(false);
-
-                  // Redeem the purchase immediately.
-                  try {
-                    await sendRedeemBid(
-                      connection,
-                      wallet,
-                      myPayingAccount.pubkey,
-                      auctionView,
-                      accountByMint,
-                      prizeTrackingTickets,
-                      bidRedemptions,
-                      bids,
-                      // TODO: Replace with instant sale dialog
-                    ).then(() => setShowRedeemedBidModal(true));
-                  } catch (e) {
-                    console.error(e);
-                    setShowRedemptionIssue(true);
-                  }
-                }
-
-                setLoading(false);
-              };
-
               return (
                 <>
-                  <h2 className="modal-title">
-                    {auctionView.isInstantSale ? 'Instant Sale' : 'Place a bid'}
-                  </h2>
+                  <h2 className="modal-title">Place a bid</h2>
                   {!!gapTime && (
                     <div
                       className="info-content"
@@ -575,26 +528,24 @@ export const AuctionCard = ({
                       color: 'rgba(0, 0, 0, 0.5)',
                     }}
                   >
-                    {!auctionView.isInstantSale && (
-                      <InputNumber
-                        autoFocus
-                        className="input"
-                        value={value}
-                        style={{
-                          width: '100%',
-                          background: '#393939',
-                          borderRadius: 16,
-                        }}
-                        onChange={setValue}
-                        precision={4}
-                        formatter={value =>
-                          value
-                            ? `◎ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-                            : ''
-                        }
-                        placeholder="Amount in SOL"
-                      />
-                    )}
+                    <InputNumber
+                      autoFocus
+                      className="input"
+                      value={value}
+                      style={{
+                        width: '100%',
+                        background: '#393939',
+                        borderRadius: 16,
+                      }}
+                      onChange={setValue}
+                      precision={4}
+                      formatter={value =>
+                        value
+                          ? `◎ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                          : ''
+                      }
+                      placeholder="Amount in SOL"
+                    />
                     <div
                       style={{
                         display: 'inline-block',
@@ -622,24 +573,21 @@ export const AuctionCard = ({
                     type="primary"
                     size="large"
                     className="action-btn"
-                    onClick={auctionView.isInstantSale ? instantSale : placeBid}
+                    onClick={placeBid}
                     disabled={
                       tickSizeInvalid ||
                       gapBidInvalid ||
                       !myPayingAccount ||
-                      (!auctionView.isInstantSale &&
-                        (value === undefined ||
-                          value * LAMPORTS_PER_SOL < priceFloor)) ||
+                      value === undefined ||
+                      value * LAMPORTS_PER_SOL < priceFloor ||
                       loading ||
                       !accountByMint.get(QUOTE_MINT.toBase58())
                     }
                   >
                     {loading || !accountByMint.get(QUOTE_MINT.toBase58()) ? (
                       <Spin />
-                    ) : auctionView.isInstantSale ? (
-                      'Confirm Purchase'
                     ) : (
-                      'Place Bid'
+                      'Place bid'
                     )}
                   </Button>
                 </>
