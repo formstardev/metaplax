@@ -48,11 +48,7 @@ export const AuctionRenderCard = (props: AuctionCard) => {
   let currentBid: number | string = 0;
   let label = '';
   if (isUpcoming || bids) {
-    label = ended
-      ? 'Ended'
-      : auctionView.isInstantSale
-      ? 'Price'
-      : 'Starting bid';
+    label = ended ? 'Ended' : 'Starting bid';
     currentBid = fromLamports(
       participationOnly ? participationFixedPrice : priceFloor,
       mintInfo,
