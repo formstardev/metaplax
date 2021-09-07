@@ -18,15 +18,14 @@ import { useMeta } from '../contexts';
 import {
   AuctionManager,
   AuctionManagerStatus,
-  AuctionManagerV1,
   AuctionManagerV2,
   BidRedemptionTicket,
   BidRedemptionTicketV2,
   getBidderKeys,
   SafetyDepositConfig,
   WinningConfigType,
-  AuctionViewItem,
-} from '@oyster/common/dist/lib/models/metaplex/index';
+} from '../models/metaplex';
+import { AuctionManagerV1 } from '../models/metaplex/deprecatedStates';
 
 export enum AuctionViewState {
   Live = '0',
@@ -34,6 +33,14 @@ export enum AuctionViewState {
   Ended = '2',
   BuyNow = '3',
   Defective = '-1',
+}
+
+export interface AuctionViewItem {
+  winningConfigType: WinningConfigType;
+  amount: BN;
+  metadata: ParsedAccount<Metadata>;
+  safetyDeposit: ParsedAccount<SafetyDepositBox>;
+  masterEdition?: ParsedAccount<MasterEditionV1 | MasterEditionV2>;
 }
 
 // Flattened surface item for easy display

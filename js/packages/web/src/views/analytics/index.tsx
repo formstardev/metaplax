@@ -1,11 +1,7 @@
 import React, { Dispatch, SetStateAction, useState } from 'react';
 import { Layout, Button, Col, Spin } from 'antd';
 import { useMeta } from '../../contexts';
-import {
-  AuctionManagerV1,
-  AuctionManagerV2,
-  WinningConfigType,
-} from '@oyster/common/dist/lib/models/metaplex/index';
+import { AuctionManagerV2, WinningConfigType } from '../../models/metaplex';
 import { Pie, Bar } from 'react-chartjs-2';
 import {
   AuctionDataExtended,
@@ -20,6 +16,7 @@ import {
 import { AuctionView, useAuctions } from '../../hooks';
 import { QUOTE_MINT } from '../../constants';
 import { MintInfo } from '@solana/spl-token';
+import { AuctionManagerV1 } from '../../models/metaplex/deprecatedStates';
 
 const { Content } = Layout;
 export const AnalyticsView = () => {

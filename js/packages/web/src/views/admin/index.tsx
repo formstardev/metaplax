@@ -12,10 +12,7 @@ import {
   Divider,
 } from 'antd';
 import { useMeta } from '../../contexts';
-import {
-  Store,
-  WhitelistedCreator,
-} from '@oyster/common/dist/lib/models/metaplex/index';
+import { Store, WhitelistedCreator } from '../../models/metaplex';
 import {
   MasterEditionV1,
   notify,

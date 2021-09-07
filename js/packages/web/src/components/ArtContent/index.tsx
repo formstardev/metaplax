@@ -1,12 +1,13 @@
 import React, { Ref, useCallback, useEffect, useState } from 'react';
 import { Image } from 'antd';
-import { MetadataCategory, MetadataFile, pubkeyToString } from '@oyster/common';
+import { MetadataCategory, MetadataFile } from '@oyster/common';
 import { MeshViewer } from '../MeshViewer';
 import { ThreeDots } from '../MyLoader';
 import { useCachedImage, useExtendedArt } from '../../hooks';
 import { Stream, StreamPlayerApi } from '@cloudflare/stream-react';
 import { PublicKey } from '@solana/web3.js';
 import { getLast } from '../../utils/utils';
+import { pubkeyToString } from '../../utils/pubkeyToString';
 
 const MeshArtContent = ({
   uri,
@@ -33,7 +34,7 @@ const MeshArtContent = ({
         uri={uri}
         className={className}
         preview={false}
-        style={{ width: 300, ...style }}
+        style={{ width: '100%', ...style }}
       />
     );
   }
