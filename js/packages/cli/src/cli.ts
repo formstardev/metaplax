@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import * as fs from 'fs';
-import Arweave from 'arweave';
 import * as path from 'path';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
@@ -17,7 +16,6 @@ import {
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { token } from '@project-serum/anchor/dist/utils';
 
 const CACHE_PATH = './.cache';
 const PAYMENT_WALLET = new anchor.web3.PublicKey(
@@ -132,12 +130,12 @@ const getCandyMachine = async (config: anchor.web3.PublicKey, uuid: string) => {
   );
 };
 
-const getConfig = async (authority: anchor.web3.PublicKey, uuid: string) => {
-  return await anchor.web3.PublicKey.findProgramAddress(
-    [Buffer.from(CANDY_MACHINE), authority.toBuffer(), Buffer.from(uuid)],
-    programId,
-  );
-};
+// const getConfig = async (authority: anchor.web3.PublicKey, uuid: string) => {
+//   return await anchor.web3.PublicKey.findProgramAddress(
+//     [Buffer.from(CANDY_MACHINE), authority.toBuffer(), Buffer.from(uuid)],
+//     programId,
+//   );
+// };
 
 const getMetadata = async (
   mint: anchor.web3.PublicKey,
@@ -252,7 +250,7 @@ program
   .option('-c, --cache-name <path>', 'Cache file name')
   .action(async (files: string[], options, cmd) => {
     const extension = '.png';
-    const { startWith, keypair } = cmd.opts();
+    const { keypair } = cmd.opts();
     const cacheName = program.getOptionValue('cacheName') || 'temp';
     const cachePath = path.join(CACHE_PATH, cacheName);
     const savedContent = fs.existsSync(cachePath)
@@ -317,7 +315,7 @@ program
       ? new anchor.web3.PublicKey(cacheContent.program.config)
       : undefined;
 
-    const block = await solConnection.getRecentBlockhash();
+    await solConnection.getRecentBlockhash();
     for (let i = 0; i < SIZE; i++) {
       const image = images[i];
       const imageName = path.basename(image);
@@ -329,7 +327,7 @@ program
 
       let link = cacheContent?.items?.[index]?.link;
       if (!link || !cacheContent.program.uuid) {
-        const imageBuffer = Buffer.from(fs.readFileSync(image));
+        //const imageBuffer = Buffer.from(fs.readFileSync(image));
         const manifestPath = image.replace(extension, '.json');
         const manifestContent = fs
           .readFileSync(manifestPath)
@@ -339,7 +337,7 @@ program
         const manifest = JSON.parse(manifestContent);
 
         const manifestBuffer = Buffer.from(JSON.stringify(manifest));
-        const sizeInBytes = imageBuffer.length + manifestBuffer.length;
+        // const sizeInBytes = imageBuffer.length + manifestBuffer.length;
 
         if (i === 0 && !cacheContent.program.uuid) {
           // initialize config
@@ -374,7 +372,7 @@ program
         }
 
         if (!link) {
-          let instructions = [
+          const instructions = [
             anchor.web3.SystemProgram.transfer({
               fromPubkey: walletKey.publicKey,
               toPubkey: PAYMENT_WALLET,
@@ -389,11 +387,12 @@ program
             [],
             'single',
           );
+          console.info('transaction for arweave payment:', tx);
 
           // data.append('tags', JSON.stringify(tags));
           // payment transaction
           const data = new FormData();
-          data.append('transaction', tx);
+          data.append('transaction', tx['txid']);
           data.append('env', ENV);
           data.append('file[]', fs.createReadStream(image), `image.png`);
           data.append('file[]', manifestBuffer, 'metadata.json');
@@ -432,9 +431,10 @@ program
       }
     }
 
+    const keys = Object.keys(cacheContent.items);
     try {
       await Promise.all(
-        chunks(Array.from(Array(images.length).keys()), 1000).map(
+        chunks(Array.from(Array(keys.length).keys()), 1000).map(
           async allIndexesInSlice => {
             for (
               let offset = 0;
@@ -443,30 +443,23 @@ program
             ) {
               const indexes = allIndexesInSlice.slice(offset, offset + 10);
               const onChain = indexes.filter(i => {
-                const index = images[i].replace(extension, '').split('/').pop();
-                return cacheContent.items[index].onChain;
+                const index = keys[i];
+                return cacheContent.items[index]?.onChain;
               });
-              const ind = images[indexes[0]]
-                .replace(extension, '')
-                .split('/')
-                .pop();
+              const ind = keys[indexes[0]];
 
               if (onChain.length != indexes.length) {
                 console.log(
                   'Writing indices ',
                   ind,
                   '-',
-                  parseInt(ind) + indexes.length,
+                  keys[indexes[indexes.length - 1]],
                 );
-                const txId = await anchorProgram.rpc.addConfigLines(
+                await anchorProgram.rpc.addConfigLines(
                   ind,
                   indexes.map(i => ({
-                    uri: cacheContent.items[
-                      images[i].replace(extension, '').split('/').pop()
-                    ].link,
-                    name: cacheContent.items[
-                      images[i].replace(extension, '').split('/').pop()
-                    ].name,
+                    uri: cacheContent.items[keys[i]].link,
+                    name: cacheContent.items[keys[i]].name,
                   })),
                   {
                     accounts: {
@@ -477,12 +470,8 @@ program
                   },
                 );
                 indexes.forEach(i => {
-                  cacheContent.items[
-                    images[i].replace(extension, '').split('/').pop()
-                  ] = {
-                    ...cacheContent.items[
-                      images[i].replace(extension, '').split('/').pop()
-                    ],
+                  cacheContent.items[keys[i]] = {
+                    ...cacheContent.items[keys[i]],
                     onChain: true,
                   };
                 });
@@ -535,7 +524,7 @@ program
     });
     const idl = await anchor.Program.fetchIdl(programId, provider);
     const anchorProgram = new anchor.Program(idl, programId, provider);
-    const [candyMachine, _] = await getCandyMachine(
+    const [candyMachine] = await getCandyMachine(
       new anchor.web3.PublicKey(cachedContent.program.config),
       cachedContent.program.uuid,
     );
@@ -588,7 +577,7 @@ program
       config,
       cachedContent.program.uuid,
     );
-    const tx = await anchorProgram.rpc.initializeCandyMachine(
+    await anchorProgram.rpc.initializeCandyMachine(
       bump,
       {
         uuid: cachedContent.program.uuid,
@@ -610,12 +599,12 @@ program
       },
     );
 
-    console.log('Done');
+    console.log(`Done: CANDYMACHINE: ${candyMachine.toBase58()}`);
   });
 
 program
-  .command('mint_token_as_candy_machine_owner')
-  .option('-k, --keypair <path>', 'Solana wallet')
+  .command('mint_one_token')
+  .option('-k, --keypair <path>', `The purchaser's wallet key`)
   .option('-c, --cache-name <path>', 'Cache file name')
   .action(async (directory, cmd) => {
     const solConnection = new anchor.web3.Connection(
@@ -623,8 +612,8 @@ program
     );
 
     const { keypair } = cmd.opts();
-    const solPriceStr = program.getOptionValue('price') || '1';
-    const lamports = parseInt(solPriceStr) * LAMPORTS_PER_SOL;
+    // const solPriceStr = program.getOptionValue('price') || '1';
+    //const lamports = parseInt(solPriceStr) * LAMPORTS_PER_SOL;
 
     const cacheName = program.getOptionValue('cacheName') || 'temp';
     const cachePath = path.join(CACHE_PATH, cacheName);
@@ -644,10 +633,11 @@ program
     const idl = await anchor.Program.fetchIdl(programId, provider);
     const anchorProgram = new anchor.Program(idl, programId, provider);
     const config = new anchor.web3.PublicKey(cachedContent.program.config);
-    const [candyMachine, bump] = await getCandyMachine(
+    const [candyMachine] = await getCandyMachine(
       config,
       cachedContent.program.uuid,
     );
+    const candy = await anchorProgram.account.candyMachine.fetch(candyMachine);
     const metadata = await getMetadata(mint.publicKey);
     const masterEdition = await getMasterEdition(mint.publicKey);
     const tx = await anchorProgram.rpc.mintNft({
@@ -655,7 +645,8 @@ program
         config: config,
         candyMachine: candyMachine,
         payer: walletKey.publicKey,
-        wallet: walletKey.publicKey,
+        //@ts-ignore
+        wallet: candy.wallet,
         mint: mint.publicKey,
         metadata,
         masterEdition,
@@ -707,7 +698,7 @@ program
 program
   .command('verify')
   .option('-c, --cache-name <path>', 'Cache file name')
-  .action(async (directory, second, options) => {
+  .action(async () => {
     const solConnection = new anchor.web3.Connection(
       `https://api.${ENV}.solana.com/`,
     );
@@ -720,6 +711,8 @@ program
     const config = await solConnection.getAccountInfo(
       new PublicKey(cachedContent.program.config),
     );
+    const number = new BN(config.data.slice(247, 247 + 4), undefined, 'le');
+    console.log('Number', number.toNumber());
 
     const keys = Object.keys(cachedContent.items);
     for (let i = 0; i < keys.length; i++) {

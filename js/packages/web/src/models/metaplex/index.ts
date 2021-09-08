@@ -9,12 +9,10 @@ import {
   Vault,
   Metadata,
   MasterEditionV1,
-  MetadataKey,
   SafetyDepositBox,
   MasterEditionV2,
   toPublicKey,
   StringPublicKey,
-  getAuctionExtended,
 } from '@oyster/common';
 import { AccountInfo, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
@@ -89,7 +87,6 @@ export class PayoutTicket {
     this.amountPaid = args.amountPaid;
   }
 }
-
 export class AuctionManager {
   pubkey: StringPublicKey;
   store: StringPublicKey;
@@ -207,7 +204,7 @@ export class AuctionManager {
             metadataByMint[boxes[it.safetyDepositBoxIndex]?.info.tokenMint];
           if (!metadata) {
             // Means is a limited edition v1, so the tokenMint is the printingMint
-            let masterEdition =
+            const masterEdition =
               masterEditionsByPrintingMint[
                 boxes[it.safetyDepositBoxIndex]?.info.tokenMint
               ];
@@ -261,7 +258,6 @@ export class AuctionManagerV2 {
   vault: StringPublicKey;
   acceptPayment: StringPublicKey;
   state: AuctionManagerStateV2;
-  auctionDataExtended?: StringPublicKey;
 
   constructor(args: {
     store: StringPublicKey;
@@ -278,13 +274,6 @@ export class AuctionManagerV2 {
     this.vault = args.vault;
     this.acceptPayment = args.acceptPayment;
     this.state = args.state;
-
-    const auction = programIds().auction;
-
-    getAuctionExtended({
-      auctionProgramId: auction,
-      resource: this.vault,
-    }).then(val => (this.auctionDataExtended = val));
   }
 }
 
@@ -329,15 +318,6 @@ export class RedeemFullRightsTransferBidArgs {
 export class StartAuctionArgs {
   instruction = 5;
 }
-
-export class EndAuctionArgs {
-  instruction = 21;
-  reveal: BN[] | null;
-  constructor(args: { reveal: BN[] | null }) {
-    this.reveal = args.reveal;
-  }
-}
-
 export class ClaimBidArgs {
   instruction = 6;
 }
@@ -664,7 +644,7 @@ export class SafetyDepositConfig {
       this.winningConfigType = args.data[41];
       this.amountType = args.data[42];
       this.lengthType = args.data[43];
-      let lengthOfArray = new BN(args.data.slice(44, 48), 'le');
+      const lengthOfArray = new BN(args.data.slice(44, 48), 'le');
       this.amountRanges = [];
       let offset = 48;
       for (let i = 0; i < lengthOfArray.toNumber(); i++) {
@@ -735,7 +715,7 @@ export class SafetyDepositConfig {
   getAmountForWinner(winner: BN): BN {
     let start = new BN(0);
     for (let i = 0; i < this.amountRanges.length; i++) {
-      let end = start.add(this.amountRanges[i].length);
+      const end = start.add(this.amountRanges[i].length);
       if (winner.gte(start) && winner.lt(end)) {
         return this.amountRanges[i].amount;
       }
@@ -969,16 +949,6 @@ export const SCHEMA = new Map<any, any>([
     {
       kind: 'struct',
       fields: [['instruction', 'u8']],
-    },
-  ],
-  [
-    EndAuctionArgs,
-    {
-      kind: 'struct',
-      fields: [
-        ['instruction', 'u8'],
-        ['reveal', { kind: 'option', type: [BN] }],
-      ],
     },
   ],
   [
