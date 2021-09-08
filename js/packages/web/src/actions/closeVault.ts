@@ -32,8 +32,8 @@ export async function closeVault(
   const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
     AccountLayout.span,
   );
-  const signers: Keypair[] = [];
-  const instructions: TransactionInstruction[] = [];
+  let signers: Keypair[] = [];
+  let instructions: TransactionInstruction[] = [];
 
   await activateVault(
     new BN(0),
@@ -62,7 +62,7 @@ export async function closeVault(
     signers,
   );
 
-  const transferAuthority = Keypair.generate();
+  let transferAuthority = Keypair.generate();
 
   // Shouldn't need to pay anything since we activated vault with 0 shares, but we still
   // need this setup anyway.

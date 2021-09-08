@@ -14,8 +14,6 @@ import {
 } from '../../hooks';
 import { ArtContent } from '../../components/ArtContent';
 
-import { format } from 'timeago.js';
-
 import {
   formatTokenAmount,
   Identicon,
@@ -23,6 +21,7 @@ import {
   shortenAddress,
   useConnection,
   useConnectionConfig,
+  fromLamports,
   useMint,
   AuctionState,
   StringPublicKey,
@@ -35,8 +34,6 @@ import useWindowDimensions from '../../utils/layout';
 import { CheckOutlined } from '@ant-design/icons';
 import { useMemo } from 'react';
 import { ArtType } from '../../types';
-import { MetaAvatar } from '../../components/MetaAvatar';
-import { AmountLabel } from '../../components/AmountLabel';
 
 export const AuctionItem = ({
   item,
@@ -64,7 +61,7 @@ export const AuctionItem = ({
     marginLeft: size > 1 && index === 0 ? '0px' : 'auto',
     background: 'black',
     boxShadow: 'rgb(0 0 0 / 10%) 12px 2px 20px 14px',
-    aspectRatio: '1/1',
+    height: 300,
   };
   return (
     <ArtContent
@@ -121,131 +118,120 @@ export const AuctionView = () => {
         index={index}
         size={arr.length}
         active={index === currentIndex}
-      />
+      ></AuctionItem>
     );
   });
 
   return (
-    <Row justify="center" ref={ref} gutter={[48, 0]}>
-      <Col span={24} md={10} className={'img-cont-500'}>
-        <div className="auction-view" style={{ minHeight: 300 }}>
-          <Carousel
-            autoplay={false}
-            afterChange={index => setCurrentIndex(index)}
-          >
-            {items}
-          </Carousel>
-        </div>
-        <h6 className={'about-nft-collection'}>
-          ABOUT THIS {nftCount === 1 ? 'NFT' : 'COLLECTION'}
-        </h6>
-        <p className={'about-nft-collection a-description'}>
-          {hasDescription && <Skeleton paragraph={{ rows: 3 }} />}
-          {description ||
-            (winnerCount !== undefined && (
-              <div style={{ fontStyle: 'italic' }}>
-                No description provided.
-              </div>
-            ))}
-        </p>
-        {attributes &&
-          <div className={'about-nft-collection a-description'}>
-            <h6>Attributes</h6>
-            <List
-              grid={{ column: 4 }}
+    <>
+      <Row justify="space-around" ref={ref}>
+        <Col span={24} md={12} className="pr-4">
+          <div className="auction-view" style={{ minHeight: 300 }}>
+            <Carousel
+              autoplay={false}
+              afterChange={index => setCurrentIndex(index)}
             >
-              {attributes.map((attribute, index) =>
-                <List.Item key={`${attribute.value}-${index}`}>
-                  <Card title={attribute.trait_type}>{attribute.value}</Card>
-                </List.Item>
-              )}
-            </List>
+              {items}
+            </Carousel>
           </div>
-        }
-        {/* {auctionData[id] && (
+          <h6>Number Of Winners</h6>
+          <h1>
+            {winnerCount === undefined ? (
+              <Skeleton paragraph={{ rows: 0 }} />
+            ) : (
+              winnerCount
+            )}
+          </h1>
+          <h6>Number Of NFTs</h6>
+          <h1>
+            {nftCount === undefined ? (
+              <Skeleton paragraph={{ rows: 0 }} />
+            ) : (
+              nftCount
+            )}
+          </h1>
+          <h6>About this {nftCount === 1 ? 'NFT' : 'Collection'}</h6>
+          <div className="auction-paragraph">
+            {hasDescription && <Skeleton paragraph={{ rows: 3 }} />}
+            {description ||
+              (winnerCount !== undefined && (
+                <div style={{ fontStyle: 'italic' }}>
+                  No description provided.
+                </div>
+              ))}
+
+          </div>
+
+          {attributes &&
+            <>
+              <h6>Attributes</h6>
+              <List
+                grid={{ column: 4 }}
+              >
+                {attributes.map(attribute =>
+                  <List.Item>
+                    <Card title={attribute.trait_type}>{attribute.value}</Card>
+                  </List.Item>
+                )}
+              </List>
+            </>}
+          {/* {auctionData[id] && (
             <>
               <h6>About this Auction</h6>
               <p>{auctionData[id].description.split('\n').map((t: string) => <div>{t}</div>)}</p>
             </>
           )} */}
-      </Col>
+        </Col>
 
-      <Col span={24} md={14}>
-        <h2 className="art-title">
-          {art.title || <Skeleton paragraph={{ rows: 0 }} />}
-        </h2>
-        <Row gutter={[44, 0]}>
-          <Col span={12} md={16}>
-            <div className={'info-container'}>
-              <div className={'info-component'}>
-                <h6 className={'info-title'}>CREATED BY</h6>
-                <span>{<MetaAvatar creators={creators} />}</span>
-              </div>
-              <div className={'info-component'}>
-                <h6 className={'info-title'}>Edition</h6>
-                <span>
+        <Col span={24} md={12}>
+          <h2 className="art-title">
+            {art.title || <Skeleton paragraph={{ rows: 0 }} />}
+          </h2>
+          <Row gutter={[50, 0]} style={{ marginRight: 'unset' }}>
+            <Col>
+              <h6>Edition</h6>
+              {!auction && (
+                <Skeleton title={{ width: '100%' }} paragraph={{ rows: 0 }} />
+              )}
+              {auction && (
+                <p className="auction-art-edition">
                   {(auction?.items.length || 0) > 1 ? 'Multiple' : edition}
-                </span>
-              </div>
-              <div className={'info-component'}>
-                <h6 className={'info-title'}>Winners</h6>
-                <span>
-                  {winnerCount === undefined ? (
-                    <Skeleton paragraph={{ rows: 0 }} />
-                  ) : (
-                    winnerCount
-                  )}
-                </span>
-              </div>
-              <div className={'info-component'}>
-                <h6 className={'info-title'}>NFTS</h6>
-                <span>
-                  {nftCount === undefined ? (
-                    <Skeleton paragraph={{ rows: 0 }} />
-                  ) : (
-                    nftCount
-                  )}
-                </span>
-              </div>
-            </div>
-          </Col>
-          <Col span={12} md={8}>
-            <div className={'info-view-container'}>
-              <div className={'info-view'}>
-                <h6 className={'info-title'}>View on</h6>
-                <div style={{ display: 'flex' }}>
-                  <Button
-                    className="tag"
-                    onClick={() => window.open(art.uri || '', '_blank')}
-                  >
-                    Arweave
-                  </Button>
-                  <Button
-                    className="tag"
-                    onClick={() =>
-                      window.open(
-                        `https://explorer.solana.com/account/${
-                          art?.mint || ''
-                        }${env.indexOf('main') >= 0 ? '' : `?cluster=${env}`}`,
-                        '_blank',
-                      )
-                    }
-                  >
-                    Solana
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Col>
-        </Row>
+                </p>
+              )}
+            </Col>
 
-        {!auction && <Skeleton paragraph={{ rows: 6 }} />}
-        {auction && (
-          <AuctionCard auctionView={auction} hideDefaultAction={false} />
-        )}
-        <AuctionBids auctionView={auction} />
-      </Col>
-    </Row>
+            <Col>
+              <h6>View on</h6>
+              <div style={{ display: 'flex' }}>
+                <Button
+                  className="tag"
+                  onClick={() => window.open(art.uri || '', '_blank')}
+                >
+                  Arweave
+                </Button>
+                <Button
+                  className="tag"
+                  onClick={() =>
+                    window.open(
+                      `https://explorer.solana.com/account/${art?.mint || ''}${
+                        env.indexOf('main') >= 0 ? '' : `?cluster=${env}`
+                      }`,
+                      '_blank',
+                    )
+                  }
+                >
+                  Solana
+                </Button>
+              </div>
+            </Col>
+          </Row>
+
+          {!auction && <Skeleton paragraph={{ rows: 6 }} />}
+          {auction && <AuctionCard auctionView={auction} />}
+          <AuctionBids auctionView={auction} />
+        </Col>
+      </Row>
+    </>
   );
 };
 
@@ -284,7 +270,20 @@ const BidLine = (props: {
   }, [bidderTwitterHandle]);
 
   return (
-    <Row className={'bid-history'}>
+    <Row
+      style={{
+        width: '100%',
+        alignItems: 'center',
+        padding: '3px 0',
+        position: 'relative',
+        opacity: isActive ? undefined : 0.5,
+        ...(isme
+          ? {
+              backgroundColor: '#ffffff21',
+            }
+          : {}),
+      }}
+    >
       {isCancelled && (
         <div
           style={{
@@ -298,34 +297,32 @@ const BidLine = (props: {
           }}
         />
       )}
-      <Col span={8}>
+      <Col
+        span={2}
+        style={{
+          textAlign: 'right',
+          paddingRight: 10,
+        }}
+      >
         {!isCancelled && (
-          <div className={'flex '}>
+          <div
+            style={{
+              opacity: 0.8,
+              fontWeight: 700,
+            }}
+          >
             {isme && (
               <>
                 <CheckOutlined />
                 &nbsp;
               </>
             )}
-            <AmountLabel
-              style={{ marginBottom: 0, fontSize: '16px' }}
-              containerStyle={{
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-              displaySOL={true}
-              iconSize={24}
-              amount={formatTokenAmount(bid.info.lastBid, mint)}
-            />
+            {index + 1}
           </div>
         )}
       </Col>
-      <Col span={8} style={{ opacity: 0.7 }}>
-        {/* uses milliseconds */}
-        {format(bid.info.lastBidTimestamp.toNumber() * 1000)}
-      </Col>
-      <Col span={8}>
-        <div className={'flex-right'}>
+      <Col span={16}>
+        <Row>
           <Identicon
             style={{
               width: 24,
@@ -335,18 +332,22 @@ const BidLine = (props: {
             }}
             address={bidder}
           />{' '}
-          <span style={{ opacity: 0.7 }}>
-            {bidderTwitterHandle ? (
-              <a
-                target="_blank"
-                title={shortenAddress(bidder)}
-                href={`https://twitter.com/${bidderTwitterHandle}`}
-              >{`@${bidderTwitterHandle}`}</a>
-            ) : (
-              shortenAddress(bidder)
-            )}
-          </span>
-        </div>
+          {bidderTwitterHandle ? (
+            <a
+              target="_blank"
+              title={shortenAddress(bidder)}
+              href={`https://twitter.com/${bidderTwitterHandle}`}
+            >{`@${bidderTwitterHandle}`}</a>
+          ) : (
+            shortenAddress(bidder)
+          )}
+          {isme && <span style={{ color: '#6479f6' }}>&nbsp;(you)</span>}
+        </Row>
+      </Col>
+      <Col span={6} style={{ textAlign: 'right' }}>
+        <span title={fromLamports(bid.info.lastBid, mint).toString()}>
+          ◎{formatTokenAmount(bid.info.lastBid, mint)}
+        </span>
       </Col>
     </Row>
   );
@@ -402,44 +403,42 @@ export const AuctionBids = ({
   if (!auctionView || bids.length < 1) return null;
 
   return (
-    <Row>
-      <Col style={{ width: '100%', paddingLeft: '24px', paddingRight: '24px' }}>
-        <h6 className={'info-title'}>Bid History</h6>
-        {bidLines.slice(0, 10)}
-        {bids.length > 10 && (
-          <div
-            className="full-history"
-            onClick={() => setShowHistoryModal(true)}
-            style={{
-              cursor: 'pointer',
-            }}
-          >
-            View full history
-          </div>
-        )}
-        <MetaplexModal
-          visible={showHistoryModal}
-          onCancel={() => setShowHistoryModal(false)}
-          title="Bid history"
-          bodyStyle={{
-            background: 'unset',
-            boxShadow: 'unset',
-            borderRadius: 0,
+    <Col style={{ width: '100%' }}>
+      <h6>Bid History</h6>
+      {bidLines.slice(0, 10)}
+      {bids.length > 10 && (
+        <div
+          className="full-history"
+          onClick={() => setShowHistoryModal(true)}
+          style={{
+            cursor: 'pointer',
           }}
-          centered
-          width={width < 768 ? width - 10 : 600}
         >
-          <div
-            style={{
-              maxHeight: 600,
-              overflowY: 'scroll',
-              width: '100%',
-            }}
-          >
-            {bidLines}
-          </div>
-        </MetaplexModal>
-      </Col>
-    </Row>
+          View full history
+        </div>
+      )}
+      <MetaplexModal
+        visible={showHistoryModal}
+        onCancel={() => setShowHistoryModal(false)}
+        title="Bid history"
+        bodyStyle={{
+          background: 'unset',
+          boxShadow: 'unset',
+          borderRadius: 0,
+        }}
+        centered
+        width={width < 768 ? width - 10 : 600}
+      >
+        <div
+          style={{
+            maxHeight: 600,
+            overflowY: 'scroll',
+            width: '100%',
+          }}
+        >
+          {bidLines}
+        </div>
+      </MetaplexModal>
+    </Col>
   );
 };

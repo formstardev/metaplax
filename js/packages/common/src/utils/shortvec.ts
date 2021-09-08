@@ -2,7 +2,7 @@ export function decodeLength(bytes: Array<number>): number {
   let len = 0;
   let size = 0;
   for (;;) {
-    const elem = bytes.shift();
+    let elem = bytes.shift();
     //@ts-ignore
     len |= (elem & 0x7f) << (size * 7);
     size += 1;

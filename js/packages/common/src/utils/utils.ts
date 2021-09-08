@@ -56,7 +56,7 @@ export const findProgramAddress = async (
     'pda-' +
     seeds.reduce((agg, item) => agg + item.toString('hex'), '') +
     programId.toString();
-  const cached = localStorage.getItem(key);
+  let cached = localStorage.getItem(key);
   if (cached) {
     const value = JSON.parse(cached);
 
@@ -207,14 +207,14 @@ export const tryParseKey = (key: string): PublicKey | null => {
   }
 };
 
-const SI_SYMBOL = ['', 'k', 'M', 'G', 'T', 'P', 'E'] as const;
+var SI_SYMBOL = ['', 'k', 'M', 'G', 'T', 'P', 'E'];
 
 const abbreviateNumber = (number: number, precision: number) => {
-  const tier = (Math.log10(number) / 3) | 0;
+  let tier = (Math.log10(number) / 3) | 0;
   let scaled = number;
-  const suffix = SI_SYMBOL[tier];
+  let suffix = SI_SYMBOL[tier];
   if (tier !== 0) {
-    const scale = Math.pow(10, tier * 3);
+    let scale = Math.pow(10, tier * 3);
     scaled = number / scale;
   }
 
@@ -287,7 +287,7 @@ export function convert(
     typeof account === 'number' ? account : account.info.amount?.toNumber();
 
   const precision = Math.pow(10, mint?.decimals || 0);
-  const result = (amount / precision) * rate;
+  let result = (amount / precision) * rate;
 
   return result;
 }
