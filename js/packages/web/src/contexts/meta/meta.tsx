@@ -52,7 +52,6 @@ const MetaContext = React.createContext<MetaContextState>({
   payoutTickets: {},
   prizeTrackingTickets: {},
   stores: {},
-  update: () => {},
 });
 
 export function MetaProvider({ children = null as any }) {
@@ -109,33 +108,30 @@ export function MetaProvider({ children = null as any }) {
     [setState],
   );
 
-  async function update () {
-    if (!storeAddress) {
-      if (isReady) {
-        setIsLoading(false);
-      }
-      return;
-    } else if (!state.store) {
-      setIsLoading(true);
-    }
-
-    console.log('-----> Query started');
-
-    const nextState = await loadAccounts(connection, all);
-    console.log('loadAccounts',nextState)
-    console.log('------->Query finished');
-
-    setState(nextState);
-
-    setIsLoading(false);
-    console.log('------->set finished');
-
-    updateMints(nextState.metadataByMint);
-  }
-
-
   useEffect(() => {
-    update();
+    (async () => {
+      if (!storeAddress) {
+        if (isReady) {
+          setIsLoading(false);
+        }
+        return;
+      } else if (!state.store) {
+        setIsLoading(true);
+      }
+
+      console.log('-----> Query started');
+
+      const nextState = await loadAccounts(connection, all);
+
+      console.log('------->Query finished');
+
+      setState(nextState);
+
+      setIsLoading(false);
+      console.log('------->set finished');
+
+      updateMints(nextState.metadataByMint);
+    })();
   }, [connection, setState, updateMints, storeAddress, isReady]);
 
   const updateStateValue = useMemo<UpdateStateValueFunc>(
@@ -232,7 +228,6 @@ export function MetaProvider({ children = null as any }) {
       value={{
         ...state,
         isLoading,
-        update
       }}
     >
       {children}
