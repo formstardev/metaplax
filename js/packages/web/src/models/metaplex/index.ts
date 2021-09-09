@@ -13,6 +13,7 @@ import {
   MasterEditionV2,
   toPublicKey,
   StringPublicKey,
+  getAuctionExtended,
 } from '@oyster/common';
 import { AccountInfo, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
@@ -87,6 +88,7 @@ export class PayoutTicket {
     this.amountPaid = args.amountPaid;
   }
 }
+
 export class AuctionManager {
   pubkey: StringPublicKey;
   store: StringPublicKey;
@@ -258,6 +260,7 @@ export class AuctionManagerV2 {
   vault: StringPublicKey;
   acceptPayment: StringPublicKey;
   state: AuctionManagerStateV2;
+  auctionDataExtended?: StringPublicKey;
 
   constructor(args: {
     store: StringPublicKey;
@@ -274,6 +277,13 @@ export class AuctionManagerV2 {
     this.vault = args.vault;
     this.acceptPayment = args.acceptPayment;
     this.state = args.state;
+
+    const auction = programIds().auction;
+
+    getAuctionExtended({
+      auctionProgramId: auction,
+      resource: this.vault,
+    }).then(val => (this.auctionDataExtended = val));
   }
 }
 
@@ -318,6 +328,15 @@ export class RedeemFullRightsTransferBidArgs {
 export class StartAuctionArgs {
   instruction = 5;
 }
+
+export class EndAuctionArgs {
+  instruction = 21;
+  reveal: BN[] | null;
+  constructor(args: { reveal: BN[] | null }) {
+    this.reveal = args.reveal;
+  }
+}
+
 export class ClaimBidArgs {
   instruction = 6;
 }
@@ -949,6 +968,16 @@ export const SCHEMA = new Map<any, any>([
     {
       kind: 'struct',
       fields: [['instruction', 'u8']],
+    },
+  ],
+  [
+    EndAuctionArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['reveal', { kind: 'option', type: [BN] }],
+      ],
     },
   ],
   [
