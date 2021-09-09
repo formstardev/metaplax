@@ -1,5 +1,4 @@
 import {
-  PublicKey,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
@@ -253,23 +252,9 @@ export class Metadata {
   }
 
   public async init() {
-    const metadata = toPublicKey(programIds().metadata);
-    if (this.editionNonce != null) {
-      this.edition = (
-        await PublicKey.createProgramAddress(
-          [
-            Buffer.from(METADATA_PREFIX),
-            metadata.toBuffer(),
-            toPublicKey(this.mint).toBuffer(),
-            new Uint8Array([this.editionNonce || 0]),
-          ],
-          metadata,
-        )
-      ).toBase58();
-    } else {
-      this.edition = await getEdition(this.mint);
-    }
-    this.masterEdition = this.edition;
+    const edition = await getEdition(this.mint);
+    this.edition = edition;
+    this.masterEdition = edition;
   }
 }
 
@@ -447,6 +432,7 @@ export const METADATA_SCHEMA = new Map<any, any>([
   ],
 ]);
 
+// eslint-disable-next-line no-control-regex
 const METADATA_REPLACE = new RegExp('\u0000', 'g');
 
 export const decodeMetadata = (buffer: Buffer): Metadata => {

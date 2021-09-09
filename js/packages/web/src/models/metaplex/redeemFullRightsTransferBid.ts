@@ -1,6 +1,5 @@
 import {
   programIds,
-  getAuctionExtended,
   VAULT_PREFIX,
   findProgramAddress,
   StringPublicKey,
@@ -67,11 +66,6 @@ export async function redeemFullRightsTransferBid(
     auctionManagerKey,
     safetyDeposit,
   );
-
-  const auctionExtended = await getAuctionExtended({
-    auctionProgramId: PROGRAM_IDS.auction,
-    resource: vault,
-  });
 
   const value =
     auctioneerReclaimIndex !== undefined
@@ -184,12 +178,6 @@ export async function redeemFullRightsTransferBid(
     },
     {
       pubkey: toPublicKey(safetyDepositConfig),
-      isSigner: false,
-      isWritable: false,
-    },
-
-    {
-      pubkey: auctionExtended,
       isSigner: false,
       isWritable: false,
     },
