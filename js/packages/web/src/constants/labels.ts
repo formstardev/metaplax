@@ -1,5 +1,4 @@
 export const LABELS = {
-  STORE_NAME: 'Metaplex',
   CONNECT_LABEL: 'Connect Wallet',
   GIVE_SOL: 'Give me SOL',
   FAUCET_INFO:
@@ -7,6 +6,7 @@ export const LABELS = {
   ACCOUNT_FUNDED: 'Account funded.',
   MENU_HOME: 'Home',
   MENU_FAUCET: 'Faucet',
+  APP_TITLE: 'Metaplex',
   CONNECT_BUTTON: 'Connect',
   WALLET_TOOLTIP: 'Wallet public key',
   WALLET_BALANCE: 'Wallet balance',
