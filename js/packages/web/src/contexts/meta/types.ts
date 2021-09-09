@@ -12,7 +12,7 @@ import {
   MasterEditionV2,
   PublicKeyStringAndAccount,
 } from '@oyster/common';
-import { AccountInfo } from '@solana/web3.js';
+import { AccountInfo, PublicKey } from '@solana/web3.js';
 import {
   BidRedemptionTicket,
   Store,
@@ -76,6 +76,7 @@ export interface MetaState {
 
 export interface MetaContextState extends MetaState {
   isLoading: boolean;
+  update: () => void;
 }
 
 export type AccountAndPubkey = {

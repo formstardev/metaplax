@@ -38,10 +38,10 @@ export const useUserArts = (): SafetyDepositDraft[] => {
     m.info.masterEdition ? masterEditions[m.info.masterEdition] : undefined,
   );
 
-  const safetyDeposits: SafetyDepositDraft[] = [];
+  let safetyDeposits: SafetyDepositDraft[] = [];
   let i = 0;
   ownedMetadata.forEach(m => {
-    const a = accountByMint.get(m.info.mint);
+    let a = accountByMint.get(m.info.mint);
     let masterA;
     const masterEdition = possibleMasterEditions[i];
     if (masterEdition?.info.key == MetadataKey.MasterEditionV1) {

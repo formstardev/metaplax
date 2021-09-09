@@ -62,14 +62,14 @@ export async function addTokensToVault(
 
   let batchCounter = 0;
 
-  const signers: Array<Keypair[]> = [];
-  const instructions: Array<TransactionInstruction[]> = [];
-  const newStores: StringPublicKey[] = [];
+  let signers: Array<Keypair[]> = [];
+  let instructions: Array<TransactionInstruction[]> = [];
+  let newStores: StringPublicKey[] = [];
 
   let currSigners: Keypair[] = [];
   let currInstructions: TransactionInstruction[] = [];
   for (let i = 0; i < nfts.length; i++) {
-    const nft = nfts[i];
+    let nft = nfts[i];
     if (nft.box.tokenAccount) {
       const newStoreAccount = createTokenAccount(
         currInstructions,

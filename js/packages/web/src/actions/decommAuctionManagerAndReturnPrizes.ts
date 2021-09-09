@@ -5,6 +5,7 @@ import {
   sendTransactionsWithManualRetry,
   setAuctionAuthority,
   setVaultAuthority,
+  TokenAccount,
   WalletSigner,
 } from '@oyster/common';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
@@ -24,12 +25,12 @@ export async function decommAuctionManagerAndReturnPrizes(
 ) {
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
-  const signers: Array<Keypair[]> = [];
-  const instructions: Array<TransactionInstruction[]> = [];
+  let signers: Array<Keypair[]> = [];
+  let instructions: Array<TransactionInstruction[]> = [];
 
   if (auctionView.auctionManager.status === AuctionManagerStatus.Initialized) {
-    const decomSigners: Keypair[] = [];
-    const decomInstructions: TransactionInstruction[] = [];
+    let decomSigners: Keypair[] = [];
+    let decomInstructions: TransactionInstruction[] = [];
 
     if (auctionView.auction.info.authority === wallet.publicKey.toBase58()) {
       await setAuctionAuthority(

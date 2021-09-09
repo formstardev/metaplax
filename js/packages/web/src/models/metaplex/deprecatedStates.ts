@@ -156,7 +156,7 @@ export class BidRedemptionTicketV1 implements BidRedemptionTicket {
     Object.assign(this, args);
   }
 
-  getBidRedeemed(): boolean {
+  getBidRedeemed(order: number): boolean {
     return this.participationRedeemed;
   }
 }

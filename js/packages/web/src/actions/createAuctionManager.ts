@@ -142,7 +142,7 @@ export async function createAuctionManager(
     auction,
   } = await makeAuction(wallet, vault, auctionSettings);
 
-  const safetyDepositConfigsWithPotentiallyUnsetTokens =
+  let safetyDepositConfigsWithPotentiallyUnsetTokens =
     await buildSafetyDepositArray(
       wallet,
       safetyDepositDrafts,
@@ -189,7 +189,7 @@ export async function createAuctionManager(
     safetyDepositConfigs,
   );
 
-  const lookup: byType = {
+  let lookup: byType = {
     markItemsThatArentMineAsSold: await markItemsThatArentMineAsSold(
       wallet,
       safetyDepositDrafts,
@@ -277,7 +277,7 @@ export async function createAuctionManager(
     },
   };
 
-  const signers: Keypair[][] = [
+  let signers: Keypair[][] = [
     ...lookup.markItemsThatArentMineAsSold.signers,
     lookup.externalPriceAccount.signers,
     lookup.deprecatedBuildAndPopulateOneTimeAuthorizationAccount?.signers || [],
@@ -377,7 +377,7 @@ async function buildSafetyDepositArray(
 ): Promise<SafetyDepositInstructionTemplate[]> {
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
-  const safetyDepositTemplates: SafetyDepositInstructionTemplate[] = [];
+  let safetyDepositTemplates: SafetyDepositInstructionTemplate[] = [];
   safetyDeposits.forEach((s, i) => {
     const maxAmount = [...s.amountRanges.map(a => a.amount)]
       .sort()
@@ -518,13 +518,13 @@ async function setupAuctionManagerInstructions(
 }> {
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
-  const store = programIds().store?.toBase58();
+  let store = programIds().store?.toBase58();
   if (!store) {
     throw new Error('Store not initialized');
   }
 
-  const signers: Keypair[] = [];
-  const instructions: TransactionInstruction[] = [];
+  let signers: Keypair[] = [];
+  let instructions: TransactionInstruction[] = [];
 
   const { auctionManagerKey } = await getAuctionKeys(vault);
 
@@ -572,8 +572,8 @@ async function setupStartAuction(
 }> {
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
-  const signers: Keypair[] = [];
-  const instructions: TransactionInstruction[] = [];
+  let signers: Keypair[] = [];
+  let instructions: TransactionInstruction[] = [];
 
   await startAuction(vault, wallet.publicKey.toBase58(), instructions);
 
@@ -599,8 +599,8 @@ async function deprecatedValidateParticipationHelper(
     throw new Error('Store not initialized');
   }
 
-  const instructions: TransactionInstruction[] = [];
-  const signers: Keypair[] = [];
+  let instructions: TransactionInstruction[] = [];
+  let signers: Keypair[] = [];
   const whitelistedCreator = participationSafetyDepositDraft.metadata.info.data
     .creators
     ? await findValidWhitelistedCreator(
@@ -684,12 +684,12 @@ async function validateBoxes(
   if (!store) {
     throw new Error('Store not initialized');
   }
-  const signers: Keypair[][] = [];
-  const instructions: TransactionInstruction[][] = [];
+  let signers: Keypair[][] = [];
+  let instructions: TransactionInstruction[][] = [];
 
   for (let i = 0; i < safetyDeposits.length; i++) {
-    const tokenSigners: Keypair[] = [];
-    const tokenInstructions: TransactionInstruction[] = [];
+    let tokenSigners: Keypair[] = [];
+    let tokenInstructions: TransactionInstruction[] = [];
 
     let safetyDepositBox: StringPublicKey;
 
@@ -762,8 +762,8 @@ async function deprecatedBuildAndPopulateOneTimeAuthorizationAccount(
 
   if (!oneTimePrintingAuthorizationMint)
     return { instructions: [], signers: [] };
-  const signers: Keypair[] = [];
-  const instructions: TransactionInstruction[] = [];
+  let signers: Keypair[] = [];
+  let instructions: TransactionInstruction[] = [];
   const recipientKey: StringPublicKey = (
     await findProgramAddress(
       [

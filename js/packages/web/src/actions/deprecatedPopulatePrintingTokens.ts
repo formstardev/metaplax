@@ -32,13 +32,13 @@ export async function deprecatedPopulatePrintingTokens(
 
   let batchCounter = 0;
 
-  const signers: Array<Keypair[]> = [];
-  const instructions: Array<TransactionInstruction[]> = [];
+  let signers: Array<Keypair[]> = [];
+  let instructions: Array<TransactionInstruction[]> = [];
 
   let currSigners: Keypair[] = [];
   let currInstructions: TransactionInstruction[] = [];
   for (let i = 0; i < safetyDepositConfigs.length; i++) {
-    const nft = safetyDepositConfigs[i];
+    let nft = safetyDepositConfigs[i];
     if (nft.draft.masterEdition?.info.key != MetadataKey.MasterEditionV1) {
       continue;
     }
