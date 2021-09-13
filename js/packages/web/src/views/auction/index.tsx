@@ -226,7 +226,7 @@ export const AuctionView = () => {
 
           {!auction && <Skeleton paragraph={{ rows: 6 }} />}
           {auction && <AuctionCard auctionView={auction} />}
-          {!auction?.isInstantSale && <AuctionBids auctionView={auction} />}
+          <AuctionBids auctionView={auction} />
         </Col>
       </Row>
     </>

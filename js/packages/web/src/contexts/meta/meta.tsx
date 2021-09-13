@@ -7,9 +7,6 @@ import {
   METADATA_PROGRAM_ID,
   toPublicKey,
   useQuerySearch,
-  AuctionData,
-  BidderPot,
-  BidderMetadata,
 } from '@oyster/common';
 import React, {
   useCallback,
@@ -55,11 +52,8 @@ const MetaContext = React.createContext<MetaContextState>({
   payoutTickets: {},
   prizeTrackingTickets: {},
   stores: {},
-  // @ts-ignore
-  update: () => [AuctionData, BidderPot, BidderMetadata],
 });
 
-// eslint-disable-next-line react/prop-types
 export function MetaProvider({ children = null as any }) {
   const connection = useConnection();
   const { isReady, storeAddress } = useStore();
@@ -114,41 +108,30 @@ export function MetaProvider({ children = null as any }) {
     [setState],
   );
 
-  async function update(auctionAddress?, bidderAddress?) {
-    if (!storeAddress) {
-      if (isReady) {
-        setIsLoading(false);
-      }
-      return;
-    } else if (!state.store) {
-      setIsLoading(true);
-    }
-
-    console.log('-----> Query started');
-
-    const nextState = await loadAccounts(connection, all);
-    console.log('loadAccounts', nextState);
-    console.log('------->Query finished');
-
-    setState(nextState);
-
-    setIsLoading(false);
-    console.log('------->set finished');
-
-    await updateMints(nextState.metadataByMint);
-
-    if (auctionAddress && bidderAddress) {
-      const auctionBidderKey = auctionAddress + '-' + bidderAddress;
-      return [
-        nextState.auctions[auctionAddress],
-        nextState.bidderPotsByAuctionAndBidder[auctionBidderKey],
-        nextState.bidderMetadataByAuctionAndBidder[auctionBidderKey],
-      ];
-    }
-  }
-
   useEffect(() => {
-    update();
+    (async () => {
+      if (!storeAddress) {
+        if (isReady) {
+          setIsLoading(false);
+        }
+        return;
+      } else if (!state.store) {
+        setIsLoading(true);
+      }
+
+      console.log('-----> Query started');
+
+      const nextState = await loadAccounts(connection, all);
+
+      console.log('------->Query finished');
+
+      setState(nextState);
+
+      setIsLoading(false);
+      console.log('------->set finished');
+
+      updateMints(nextState.metadataByMint);
+    })();
   }, [connection, setState, updateMints, storeAddress, isReady]);
 
   const updateStateValue = useMemo<UpdateStateValueFunc>(
@@ -245,8 +228,6 @@ export function MetaProvider({ children = null as any }) {
       value={{
         ...state,
         isLoading,
-        // @ts-ignore
-        update,
       }}
     >
       {children}
