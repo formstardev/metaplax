@@ -1,13 +1,13 @@
-import { BN } from "@project-serum/anchor";
-import { PublicKey } from "@solana/web3.js";
+import {BN} from "@project-serum/anchor";
+import {PublicKey} from "@solana/web3.js";
 
 export class Creator {
-  address: PublicKey;
+  address: string;
   verified: boolean;
   share: number;
 
   constructor(args: {
-    address: PublicKey;
+    address: string;
     verified: boolean;
     share: number;
   }) {
@@ -32,7 +32,6 @@ export class ConfigData {
   isMutable: boolean;
   maxSupply: BN;
   retainAuthority: boolean;
-
   constructor(args: {
     name: string;
     symbol: string;

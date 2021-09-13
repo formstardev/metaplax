@@ -281,18 +281,6 @@ const CategoryStep = (props: {
               </div>
             </Button>
           </Row>
-          <Row>
-            <Button
-              className="type-btn"
-              size="large"
-              onClick={() => props.confirm(MetadataCategory.HTML)}
-            >
-              <div>
-                <div>HTML Asset</div>
-                <div className="type-btn-description">HTML</div>
-              </div>
-            </Button>
-          </Row>
         </Col>
       </Row>
     </>
@@ -335,8 +323,6 @@ const UploadStep = (props: {
         return 'Upload your video creation (MP4, MOV, GLB)';
       case MetadataCategory.VR:
         return 'Upload your AR/VR creation (GLB)';
-      case MetadataCategory.HTML:
-          return 'Upload your HTML File (.html)';
       default:
         return 'Please go back and choose a category';
     }
