@@ -159,39 +159,6 @@ const VideoArtContent = ({
   return content;
 };
 
-const HTMLContent = ({
-  uri,
-  animationUrl,
-  className,
-  style,
-  files,
-}: {
-  uri?: string;
-  animationUrl?: string;
-  className?: string;
-  style?: React.CSSProperties;
-  files?: (MetadataFile | string)[];
-}) => {
-  const htmlURL =
-    files && files.length > 0 && typeof files[0] === 'string'
-      ? files[0]
-      : animationUrl;
-  const { isLoading } = useCachedImage(htmlURL || '', true);
-
-  if (isLoading) {
-    return (
-      <CachedImageContent
-        uri={uri}
-        className={className}
-        preview={false}
-        style={{ width: 300, ...style }}
-      />
-    );
-  }
-  return <iframe allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" sandbox="allow-scripts" frameBorder="0" src={htmlURL} className={className} style={style}></iframe>;
-};
-
-
 export const ArtContent = ({
   category,
   className,
@@ -247,19 +214,6 @@ export const ArtContent = ({
   ) {
     return (
       <MeshArtContent
-        uri={uri}
-        animationUrl={animationURL}
-        className={className}
-        style={style}
-        files={files}
-      />
-    );
-  }
-
-  if (category === 'html' || animationUrlExt === 'html'
-  ) {
-    return (
-      <HTMLContent
         uri={uri}
         animationUrl={animationURL}
         className={className}
