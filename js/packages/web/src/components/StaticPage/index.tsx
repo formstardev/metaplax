@@ -117,11 +117,11 @@ export const StaticPage = (props: {
           const id = m.auction.pubkey;
           return (
             <Link to={`/auction/${id}`} key={idx}>
-              <AuctionRenderCard key={id} auctionView={m}/>
+              <AuctionRenderCard key={id} auctionView={m} />
             </Link>
           );
         })
-        : [...Array(10)].map((_, idx) => <CardLoader key={idx}/>)}
+        : [...Array(10)].map((_, idx) => <CardLoader key={idx} />)}
     </Masonry>
   );
 
@@ -165,7 +165,7 @@ export const StaticPage = (props: {
       <Row>
         <Col span={24} xl={8} className="header-left">
           <p className="header-subtitle">{props.headContent.subtitle}</p>
-          <Divider/>
+          <Divider />
           <p className="header-title">{props.headContent.title}</p>
 
           {props.headContent.author && (
