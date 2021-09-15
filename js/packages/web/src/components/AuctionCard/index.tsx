@@ -21,7 +21,6 @@ import {
   MAX_EDITION_LEN,
   Identicon,
   fromLamports,
-  placeBid,
   useWalletModal,
 } from '@oyster/common';
 import {
@@ -52,8 +51,7 @@ import { findEligibleParticipationBidsForRedemption } from '../../actions/claimU
 import {
   BidRedemptionTicket,
   MAX_PRIZE_TRACKING_TICKET_SIZE,
-} from '../../models/metaplex';
-import {AuctionManagerV1} from "../../models/metaplex/deprecatedStates";
+} from '@oyster/common/dist/lib/models/metaplex/index';
 
 async function calculateTotalCostOfRedeemingOtherPeoplesBids(
   connection: Connection,
