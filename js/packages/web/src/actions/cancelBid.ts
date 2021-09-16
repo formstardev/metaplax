@@ -16,10 +16,7 @@ import {
 import { AccountLayout } from '@solana/spl-token';
 import { TransactionInstruction, Keypair, Connection } from '@solana/web3.js';
 import { AuctionView } from '../hooks';
-import {
-  BidRedemptionTicket,
-  PrizeTrackingTicket,
-} from '@oyster/common/dist/lib/models/metaplex/index';
+import { BidRedemptionTicket, PrizeTrackingTicket } from '../models/metaplex';
 import { claimUnusedPrizes } from './claimUnusedPrizes';
 import { setupPlaceBid } from './sendPlaceBid';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';

@@ -5,6 +5,7 @@ import {
   SystemProgram,
 } from '@solana/web3.js';
 import {
+  actions,
   Metadata,
   ParsedAccount,
   MasterEditionV1,
@@ -40,8 +41,7 @@ import {
   TupleNumericType,
   SafetyDepositConfig,
   ParticipationStateV2,
-} from '@oyster/common/dist/lib/models/metaplex/index';
-import { createTokenAccount } from '@oyster/common/dist/lib/actions/account';
+} from '../models/metaplex';
 import { createVault } from './createVault';
 import { closeVault } from './closeVault';
 import {
@@ -50,13 +50,15 @@ import {
 } from './addTokensToVault';
 import { makeAuction } from './makeAuction';
 import { createExternalPriceAccount } from './createExternalPriceAccount';
-import { deprecatedValidateParticipation } from '@oyster/common/dist/lib/models/metaplex/deprecatedValidateParticipation';
+import { deprecatedValidateParticipation } from '../models/metaplex/deprecatedValidateParticipation';
 import { deprecatedCreateReservationListForTokens } from './deprecatedCreateReservationListsForTokens';
 import { deprecatedPopulatePrintingTokens } from './deprecatedPopulatePrintingTokens';
 import { setVaultAndAuctionAuthorities } from './setVaultAndAuctionAuthorities';
 import { markItemsThatArentMineAsSold } from './markItemsThatArentMineAsSold';
-import { validateSafetyDepositBoxV2 } from '@oyster/common/dist/lib/models/metaplex/validateSafetyDepositBoxV2';
-import { initAuctionManagerV2 } from '@oyster/common/dist/lib/models/metaplex/initAuctionManagerV2';
+import { validateSafetyDepositBoxV2 } from '../models/metaplex/validateSafetyDepositBoxV2';
+import { initAuctionManagerV2 } from '../models/metaplex/initAuctionManagerV2';
+
+const { createTokenAccount } = actions;
 
 interface normalPattern {
   instructions: TransactionInstruction[];
