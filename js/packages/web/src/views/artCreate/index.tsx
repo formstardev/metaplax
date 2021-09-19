@@ -34,11 +34,11 @@ import {
   StringPublicKey,
 } from '@oyster/common';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { getAssetCostToStore, LAMPORT_MULTIPLIER } from '../../utils/assets';
+import { LAMPORT_MULTIPLIER } from '../../utils/assets';
 import { Connection } from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
-import { cleanName, getLast } from '../../utils/utils';
+import { getLast } from '../../utils/utils';
 import { AmountLabel } from '../../components/AmountLabel';
 import useWindowDimensions from '../../utils/layout';
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
@@ -281,6 +281,18 @@ const CategoryStep = (props: {
               </div>
             </Button>
           </Row>
+          <Row>
+            <Button
+              className="type-btn"
+              size="large"
+              onClick={() => props.confirm(MetadataCategory.HTML)}
+            >
+              <div>
+                <div>HTML Asset</div>
+                <div className="type-btn-description">HTML</div>
+              </div>
+            </Button>
+          </Row>
         </Col>
       </Row>
     </>
@@ -323,6 +335,8 @@ const UploadStep = (props: {
         return 'Upload your video creation (MP4, MOV, GLB)';
       case MetadataCategory.VR:
         return 'Upload your AR/VR creation (GLB)';
+      case MetadataCategory.HTML:
+        return 'Upload your HTML File (HTML)';
       default:
         return 'Please go back and choose a category';
     }
@@ -338,6 +352,8 @@ const UploadStep = (props: {
         return '.mp4,.mov,.webm';
       case MetadataCategory.VR:
         return '.glb';
+      case MetadataCategory.HTML:
+        return '.html';
       default:
         return '';
     }
@@ -477,7 +493,11 @@ const UploadStep = (props: {
                   }),
               },
               image: coverFile?.name || '',
-              animation_url: mainFile && mainFile.name,
+              animation_url:
+                props.attributes.properties?.category !==
+                  MetadataCategory.Image && customURL
+                  ? customURL
+                  : mainFile && mainFile.name,
             });
             props.setFiles([coverFile, mainFile].filter(f => f) as File[]);
             props.confirm();
@@ -1007,31 +1027,12 @@ const LaunchStep = (props: {
   const files = props.files;
   const metadata = props.attributes;
   useEffect(() => {
-    const rentCall = Promise.all([
+    Promise.all([
       props.connection.getMinimumBalanceForRentExemption(MintLayout.span),
       props.connection.getMinimumBalanceForRentExemption(MAX_METADATA_LEN),
-    ]);
-    if (files.length)
-      getAssetCostToStore([
-        ...files,
-        new File([JSON.stringify(metadata)], 'metadata.json'),
-      ]).then(async lamports => {
-        const sol = lamports / LAMPORT_MULTIPLIER;
-
-        // TODO: cache this and batch in one call
-        const [mintRent, metadataRent] = await rentCall;
-
-        // const uriStr = 'x';
-        // let uriBuilder = '';
-        // for (let i = 0; i < MAX_URI_LENGTH; i++) {
-        //   uriBuilder += uriStr;
-        // }
-
-        const additionalSol = (metadataRent + mintRent) / LAMPORT_MULTIPLIER;
-
-        // TODO: add fees based on number of transactions and signers
-        setCost(sol + additionalSol);
-      });
+    ]).then(([mintRent, metadataRent]) => {
+      setCost((metadataRent + mintRent) / LAMPORT_MULTIPLIER);
+    });
   }, [files, metadata, setCost]);
 
   return (
