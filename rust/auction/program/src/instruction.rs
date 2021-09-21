@@ -374,7 +374,6 @@ pub fn claim_bid_instruction(
     bidder_pubkey: Pubkey,
     bidder_pot_token_pubkey: Pubkey,
     token_mint_pubkey: Pubkey,
-    auction_extended_pubkey: Option<Pubkey>,
     args: ClaimBidArgs,
 ) -> Instruction {
     // Derive Auction Key
@@ -394,25 +393,28 @@ pub fn claim_bid_instruction(
     ];
     let (bidder_pot_pubkey, _) = Pubkey::find_program_address(seeds, &program_id);
 
-    let mut accounts = vec![
-        AccountMeta::new(destination_pubkey, false),
-        AccountMeta::new(bidder_pot_token_pubkey, false),
-        AccountMeta::new(bidder_pot_pubkey, false),
-        AccountMeta::new_readonly(authority_pubkey, true),
-        AccountMeta::new_readonly(auction_pubkey, false),
-        AccountMeta::new_readonly(bidder_pubkey, false),
-        AccountMeta::new_readonly(token_mint_pubkey, false),
-        AccountMeta::new_readonly(sysvar::clock::id(), false),
-        AccountMeta::new_readonly(spl_token::id(), false),        
+    let seeds = &[
+        PREFIX.as_bytes(),
+        program_id.as_ref(),
+        args.resource.as_ref(),
+        EXTENDED.as_bytes(),
     ];
-
-    if let Some(auction_extended) = auction_extended_pubkey {
-        accounts.push(AccountMeta::new_readonly(auction_extended, false));
-    }
+    let (auction_extended_pubkey, _) = Pubkey::find_program_address(seeds, &program_id);
 
     Instruction {
         program_id,
-        accounts,
+        accounts: vec![
+            AccountMeta::new(destination_pubkey, false),
+            AccountMeta::new(bidder_pot_token_pubkey, false),
+            AccountMeta::new(bidder_pot_pubkey, false),
+            AccountMeta::new_readonly(authority_pubkey, true),
+            AccountMeta::new_readonly(auction_pubkey, false),
+            AccountMeta::new_readonly(bidder_pubkey, false),
+            AccountMeta::new_readonly(token_mint_pubkey, false),
+            AccountMeta::new_readonly(sysvar::clock::id(), false),
+            AccountMeta::new_readonly(spl_token::id(), false),
+            AccountMeta::new_readonly(auction_extended_pubkey, false),
+        ],
         data: AuctionInstruction::ClaimBid(args).try_to_vec().unwrap(),
     }
 }
