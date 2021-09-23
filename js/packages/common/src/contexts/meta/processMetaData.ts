@@ -19,6 +19,7 @@ export const processMetaData: ProcessAccountsFunc = (
   setter,
 ) => {
   if (!isMetadataAccount(account)) return;
+
   try {
     if (isMetadataV1Account(account)) {
       const metadata = decodeMetadata(account.data);
