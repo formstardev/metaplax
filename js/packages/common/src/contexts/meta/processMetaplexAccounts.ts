@@ -18,12 +18,11 @@ import {
   BidRedemptionTicketV2,
   decodeSafetyDepositConfig,
   SafetyDepositConfig,
-} from '../../models/metaplex';
+} from '../../models';
 import { ProcessAccountsFunc } from './types';
 import { METAPLEX_ID, programIds } from '../../utils';
-import { ParsedAccount } from '../accounts/types';
-import { cache } from '../accounts/cache';
-import names from '../../config/userNames.json';
+import { ParsedAccount } from '../accounts';
+import { cache } from '../accounts';
 
 export const processMetaplexAccounts: ProcessAccountsFunc = async (
   { account, pubkey },
@@ -145,11 +144,6 @@ export const processMetaplexAccounts: ProcessAccountsFunc = async (
           parsedAccount.info.address,
           pubkey,
         );
-        const nameInfo = (names as any)[parsedAccount.info.address];
-
-        if (nameInfo) {
-          parsedAccount.info = { ...parsedAccount.info, ...nameInfo };
-        }
         if (isWhitelistedCreator) {
           setter(
             'whitelistedCreatorsByCreator',
