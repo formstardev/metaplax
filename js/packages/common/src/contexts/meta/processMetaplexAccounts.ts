@@ -23,10 +23,12 @@ import { ProcessAccountsFunc } from './types';
 import { METAPLEX_ID, programIds, pubkeyToString } from '../../utils';
 import { ParsedAccount } from '../accounts';
 import { cache } from '../accounts';
+import names from '../../config/userNames.json';
 
 export const processMetaplexAccounts: ProcessAccountsFunc = async (
   { account, pubkey },
   setter,
+  useAll,
 ) => {
   if (!isMetaplexAccount(account)) return;
 
@@ -39,7 +41,7 @@ export const processMetaplexAccounts: ProcessAccountsFunc = async (
     ) {
       const storeKey = new PublicKey(account.data.slice(1, 33));
 
-      if (STORE_ID && storeKey.equals(STORE_ID)) {
+      if ((STORE_ID && storeKey.equals(STORE_ID)) || useAll) {
         const auctionManager = decodeAuctionManager(account.data);
 
         const parsedAccount: ParsedAccount<
@@ -142,6 +144,11 @@ export const processMetaplexAccounts: ProcessAccountsFunc = async (
           parsedAccount.info.address,
           pubkey,
         );
+        const nameInfo = (names as any)[parsedAccount.info.address];
+
+        if (nameInfo) {
+          parsedAccount.info = { ...parsedAccount.info, ...nameInfo };
+        }
         if (isWhitelistedCreator) {
           setter(
             'whitelistedCreatorsByCreator',

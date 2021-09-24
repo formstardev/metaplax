@@ -90,19 +90,16 @@ export type AccountAndPubkey = {
   account: AccountInfo<Buffer>;
 };
 
-export type UpdateStateValueFunc<T = void> = (
+export type UpdateStateValueFunc = (
   prop: keyof MetaState,
   key: string,
   value: ParsedAccount<any>,
-) => T;
+) => void;
 
 export type ProcessAccountsFunc = (
   account: PublicKeyStringAndAccount<Buffer>,
   setter: UpdateStateValueFunc,
+  useAll: boolean,
 ) => void;
 
 export type CheckAccountFunc = (account: AccountInfo<Buffer>) => boolean;
-
-export type UnPromise<T extends Promise<any>> = T extends Promise<infer U>
-  ? U
-  : never;

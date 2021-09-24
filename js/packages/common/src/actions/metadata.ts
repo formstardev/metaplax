@@ -250,12 +250,12 @@ export class Metadata {
     this.data = args.data;
     this.primarySaleHappened = args.primarySaleHappened;
     this.isMutable = args.isMutable;
-    this.editionNonce = args.editionNonce ?? null;
+    this.editionNonce = args.editionNonce;
   }
 
   public async init() {
     const metadata = toPublicKey(programIds().metadata);
-    if (this.editionNonce !== null) {
+    if (this.editionNonce != null) {
       this.edition = (
         await PublicKey.createProgramAddress(
           [

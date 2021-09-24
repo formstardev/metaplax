@@ -20,13 +20,12 @@ import {
   getAuctionExtended,
 } from '../../actions';
 import { WhitelistedCreator } from '../../models/metaplex';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { AccountInfo, Connection, PublicKey } from '@solana/web3.js';
 import {
   AccountAndPubkey,
   MetaState,
   ProcessAccountsFunc,
   UpdateStateValueFunc,
-  UnPromise,
 } from './types';
 import { isMetadataPartOfStore } from './isMetadataPartOfStore';
 import { processAuctions } from './processAuctions';
@@ -63,7 +62,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
   const forEach =
     (fn: ProcessAccountsFunc) => async (accounts: AccountAndPubkey[]) => {
       for (const account of accounts) {
-        await fn(account, updateTemp);
+        await fn(account, updateTemp, false);
       }
     };
 
@@ -86,6 +85,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
           account: md,
         },
         updateTemp,
+        false,
       );
       if (editionData) {
         //@ts-ignore
@@ -96,6 +96,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
             account: editionData,
           },
           updateTemp,
+          false,
         );
       }
     }
@@ -121,6 +122,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
             account: auctionData.array[i],
           },
           updateTemp,
+          false,
         );
       });
     }
@@ -140,6 +142,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
           account: auctionManagerData,
         },
         updateTemp,
+        false,
       );
     }
   };
@@ -156,6 +159,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
           account: vaultData,
         },
         updateTemp,
+        false,
       );
     }
   };
@@ -261,143 +265,132 @@ export const limitedLoadAccounts = async (connection: Connection) => {
 
   await Promise.all(promises);
 
-  await postProcessMetadata(tempCache);
+  await postProcessMetadata(tempCache, true);
 
   return tempCache;
 };
 
-export const loadAccounts = async (connection: Connection) => {
-  const state: MetaState = getEmptyMetaState();
-  const updateState = makeSetter(state);
-  const forEachAccount = processingAccounts(updateState);
+export const loadAccounts = async (connection: Connection, all = false) => {
+  const tempCache: MetaState = getEmptyMetaState();
+  const updateTemp = makeSetter(tempCache);
+  const forEachAccount = processingAccounts(updateTemp, all);
 
-  const loadVaults = () =>
+  const pullMetadata = async (creators: AccountAndPubkey[]) => {
+    await forEachAccount(processMetaplexAccounts)(creators);
+  };
+
+  const basePromises = [
     getProgramAccounts(connection, VAULT_ID).then(
       forEachAccount(processVaultData),
-    );
-  const loadAuctions = () =>
+    ),
     getProgramAccounts(connection, AUCTION_ID).then(
       forEachAccount(processAuctions),
-    );
-  const loadMetaplex = () =>
+    ),
     getProgramAccounts(connection, METAPLEX_ID).then(
       forEachAccount(processMetaplexAccounts),
-    );
-  const loadCreators = () =>
+    ), // ???
     getProgramAccounts(connection, METAPLEX_ID, {
       filters: [
         {
           dataSize: MAX_WHITELISTED_CREATOR_SIZE,
         },
       ],
-    }).then(forEachAccount(processMetaplexAccounts));
-  const loadMetadata = () =>
-    pullMetadataByCreators(connection, state, updateState);
-  const loadEditions = () => pullEditions(connection, updateState, state);
-
-  const loading = [
-    loadCreators().then(loadMetadata).then(loadEditions),
-    loadVaults(),
-    loadAuctions(),
-    loadMetaplex(),
+    }).then(pullMetadata), // ???
   ];
 
-  await Promise.all(loading);
+  await Promise.all(basePromises);
+  const additionalPromises: Promise<void>[] = getAdditionalPromises(
+    connection,
+    Object.values(tempCache.whitelistedCreatorsByCreator),
+    forEachAccount,
+  );
 
-  console.log('Metadata size', state.metadata.length);
+  await Promise.all(additionalPromises);
 
-  return state;
+  await postProcessMetadata(tempCache, all);
+  console.log('Metadata size', tempCache.metadata.length);
+
+  await pullEditions(connection, updateTemp, tempCache, all);
+
+  return tempCache;
 };
 
 const pullEditions = async (
   connection: Connection,
-  updater: UpdateStateValueFunc,
-  state: MetaState,
+  updateTemp: UpdateStateValueFunc,
+  tempCache: MetaState,
+  all: boolean,
 ) => {
   console.log('Pulling editions for optimized metadata');
 
-  type MultipleAccounts = UnPromise<ReturnType<typeof getMultipleAccounts>>;
   let setOf100MetadataEditionKeys: string[] = [];
-  const editionPromises: Promise<void>[] = [];
+  const editionPromises: Promise<{
+    keys: string[];
+    array: AccountInfo<Buffer>[];
+  }>[] = [];
 
-  const loadBatch = () => {
+  for (let i = 0; i < tempCache.metadata.length; i++) {
+    let edition: StringPublicKey;
+    if (tempCache.metadata[i].info.editionNonce != null) {
+      edition = (
+        await PublicKey.createProgramAddress(
+          [
+            Buffer.from(METADATA_PREFIX),
+            toPublicKey(METADATA_PROGRAM_ID).toBuffer(),
+            toPublicKey(tempCache.metadata[i].info.mint).toBuffer(),
+            new Uint8Array([tempCache.metadata[i].info.editionNonce || 0]),
+          ],
+          toPublicKey(METADATA_PROGRAM_ID),
+        )
+      ).toBase58();
+    } else {
+      edition = await getEdition(tempCache.metadata[i].info.mint);
+    }
+
+    setOf100MetadataEditionKeys.push(edition);
+
+    if (setOf100MetadataEditionKeys.length >= 100) {
+      editionPromises.push(
+        getMultipleAccounts(connection, setOf100MetadataEditionKeys, 'recent'),
+      );
+      setOf100MetadataEditionKeys = [];
+    }
+  }
+
+  if (setOf100MetadataEditionKeys.length >= 0) {
     editionPromises.push(
-      getMultipleAccounts(
-        connection,
-        setOf100MetadataEditionKeys,
-        'recent',
-      ).then(processEditions),
+      getMultipleAccounts(connection, setOf100MetadataEditionKeys, 'recent'),
     );
     setOf100MetadataEditionKeys = [];
-  };
+  }
 
-  const processEditions = (returnedAccounts: MultipleAccounts) => {
+  const responses = await Promise.all(editionPromises);
+  for (let i = 0; i < responses.length; i++) {
+    const returnedAccounts = responses[i];
     for (let j = 0; j < returnedAccounts.array.length; j++) {
       processMetaData(
         {
           pubkey: returnedAccounts.keys[j],
           account: returnedAccounts.array[j],
         },
-        updater,
+        updateTemp,
+        all,
       );
     }
-  };
-
-  for (const metadata of state.metadata) {
-    let editionKey: StringPublicKey;
-    if (metadata.info.editionNonce === null) {
-      editionKey = await getEdition(metadata.info.mint);
-    } else {
-      editionKey = (
-        await PublicKey.createProgramAddress(
-          [
-            Buffer.from(METADATA_PREFIX),
-            toPublicKey(METADATA_PROGRAM_ID).toBuffer(),
-            toPublicKey(metadata.info.mint).toBuffer(),
-            new Uint8Array([metadata.info.editionNonce || 0]),
-          ],
-          toPublicKey(METADATA_PROGRAM_ID),
-        )
-      ).toBase58();
-    }
-
-    setOf100MetadataEditionKeys.push(editionKey);
-
-    if (setOf100MetadataEditionKeys.length >= 100) {
-      loadBatch();
-    }
   }
-
-  if (setOf100MetadataEditionKeys.length >= 0) {
-    loadBatch();
-  }
-
-  await Promise.all(editionPromises);
-
   console.log(
     'Edition size',
-    Object.keys(state.editions).length,
-    Object.keys(state.masterEditions).length,
+    Object.keys(tempCache.editions).length,
+    Object.keys(tempCache.masterEditions).length,
   );
 };
 
-const pullMetadataByCreators = (
+const getAdditionalPromises = (
   connection: Connection,
-  state: MetaState,
-  updater: UpdateStateValueFunc,
-): Promise<any> => {
+  whitelistedCreators: ParsedAccount<WhitelistedCreator>[],
+  forEach: ReturnType<typeof processingAccounts>,
+): Promise<void>[] => {
   console.log('pulling optimized nfts');
-
-  const whitelistedCreators = Object.values(state.whitelistedCreatorsByCreator);
-
-  const setter: UpdateStateValueFunc = async (prop, key, value) => {
-    if (prop === 'metadataByMint') {
-      await initMetadata(value, state.whitelistedCreatorsByCreator, updater);
-    } else {
-      updater(prop, key, value);
-    }
-  };
-  const forEachAccount = processingAccounts(setter);
 
   const additionalPromises: Promise<void>[] = [];
   for (const creator of whitelistedCreators) {
@@ -424,56 +417,61 @@ const pullMetadataByCreators = (
             },
           },
         ],
-      }).then(forEachAccount(processMetaData));
+      }).then(forEach(processMetaData));
       additionalPromises.push(promise);
     }
   }
 
-  return Promise.all(additionalPromises);
+  return additionalPromises;
 };
 
 export const makeSetter =
-  (state: MetaState): UpdateStateValueFunc<MetaState> =>
-  (prop, key, value) => {
+  (state: MetaState) =>
+  (prop: keyof MetaState, key: string, value: ParsedAccount<any>) => {
     if (prop === 'store') {
       state[prop] = value;
-    } else if (prop === 'metadata') {
-      state.metadata.push(value);
-    } else {
+    } else if (prop !== 'metadata') {
       state[prop][key] = value;
     }
     return state;
   };
 
 export const processingAccounts =
-  (updater: UpdateStateValueFunc) =>
+  (updater: ReturnType<typeof makeSetter>, all = false) =>
   (fn: ProcessAccountsFunc) =>
   async (accounts: AccountAndPubkey[]) => {
     await createPipelineExecutor(
       accounts.values(),
-      account => fn(account, updater),
+      account => fn(account, updater, all),
       {
-        sequence: 10,
+        sequence: 20,
         delay: 1,
-        jobsCount: 3,
       },
     );
   };
 
-const postProcessMetadata = async (state: MetaState) => {
-  const values = Object.values(state.metadataByMint);
+const postProcessMetadata = async (tempCache: MetaState, all = false) => {
+  const values = Object.values(tempCache.metadataByMint);
 
   for (const metadata of values) {
-    await metadataByMintUpdater(metadata, state);
+    await metadataByMintUpdater(metadata, tempCache, all);
   }
 };
 
 export const metadataByMintUpdater = async (
   metadata: ParsedAccount<Metadata>,
   state: MetaState,
+  all: boolean,
 ) => {
   const key = metadata.info.mint;
-  if (isMetadataPartOfStore(metadata, state.whitelistedCreatorsByCreator)) {
+  if (
+    all ||
+    isMetadataPartOfStore(
+      metadata,
+      state.store,
+      state.whitelistedCreatorsByCreator,
+    )
+  ) {
     await metadata.info.init();
     const masterEditionKey = metadata.info?.masterEdition;
     if (masterEditionKey) {
@@ -485,20 +483,4 @@ export const metadataByMintUpdater = async (
     delete state.metadataByMint[key];
   }
   return state;
-};
-
-export const initMetadata = async (
-  metadata: ParsedAccount<Metadata>,
-  whitelistedCreators: Record<string, ParsedAccount<WhitelistedCreator>>,
-  setter: UpdateStateValueFunc,
-) => {
-  if (isMetadataPartOfStore(metadata, whitelistedCreators)) {
-    await metadata.info.init();
-    setter('metadataByMint', metadata.info.mint, metadata);
-    setter('metadata', '', metadata);
-    const masterEditionKey = metadata.info?.masterEdition;
-    if (masterEditionKey) {
-      setter('metadataByMasterEdition', masterEditionKey, metadata);
-    }
-  }
 };
