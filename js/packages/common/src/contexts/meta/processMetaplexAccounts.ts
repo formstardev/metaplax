@@ -20,15 +20,13 @@ import {
   SafetyDepositConfig,
 } from '../../models';
 import { ProcessAccountsFunc } from './types';
-import { METAPLEX_ID, programIds } from '../../utils';
+import { METAPLEX_ID, programIds, pubkeyToString } from '../../utils';
 import { ParsedAccount } from '../accounts';
 import { cache } from '../accounts';
-import names from '../../config/userNames.json';
 
 export const processMetaplexAccounts: ProcessAccountsFunc = async (
   { account, pubkey },
   setter,
-  useAll,
 ) => {
   if (!isMetaplexAccount(account)) return;
 
@@ -41,7 +39,7 @@ export const processMetaplexAccounts: ProcessAccountsFunc = async (
     ) {
       const storeKey = new PublicKey(account.data.slice(1, 33));
 
-      if ((STORE_ID && storeKey.equals(STORE_ID)) || useAll) {
+      if (STORE_ID && storeKey.equals(STORE_ID)) {
         const auctionManager = decodeAuctionManager(account.data);
 
         const parsedAccount: ParsedAccount<
@@ -113,7 +111,6 @@ export const processMetaplexAccounts: ProcessAccountsFunc = async (
       if (STORE_ID && pubkey === STORE_ID.toBase58()) {
         setter('store', pubkey, parsedAccount);
       }
-      setter('stores', pubkey, parsedAccount);
     }
 
     if (isSafetyDepositConfigV1Account(account)) {
@@ -145,11 +142,6 @@ export const processMetaplexAccounts: ProcessAccountsFunc = async (
           parsedAccount.info.address,
           pubkey,
         );
-        const nameInfo = (names as any)[parsedAccount.info.address];
-
-        if (nameInfo) {
-          parsedAccount.info = { ...parsedAccount.info, ...nameInfo };
-        }
         if (isWhitelistedCreator) {
           setter(
             'whitelistedCreatorsByCreator',
@@ -157,14 +149,6 @@ export const processMetaplexAccounts: ProcessAccountsFunc = async (
             parsedAccount,
           );
         }
-      }
-
-      if (useAll) {
-        setter(
-          'creators',
-          parsedAccount.info.address + '-' + pubkey,
-          parsedAccount,
-        );
       }
     }
   } catch {
@@ -174,7 +158,7 @@ export const processMetaplexAccounts: ProcessAccountsFunc = async (
 };
 
 const isMetaplexAccount = (account: AccountInfo<Buffer>) =>
-  (account.owner as unknown as any) === METAPLEX_ID;
+  pubkeyToString(account.owner) === METAPLEX_ID;
 
 const isAuctionManagerV1Account = (account: AccountInfo<Buffer>) =>
   account.data[0] === MetaplexKey.AuctionManagerV1;
