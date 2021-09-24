@@ -71,6 +71,8 @@ export interface MetaState {
     ParsedAccount<WhitelistedCreator>
   >;
   payoutTickets: Record<string, ParsedAccount<PayoutTicket>>;
+  stores: Record<string, ParsedAccount<Store>>;
+  creators: Record<string, ParsedAccount<WhitelistedCreator>>;
 }
 
 export interface MetaContextState extends MetaState {
@@ -99,6 +101,7 @@ export type UpdateStateValueFunc = (
 export type ProcessAccountsFunc = (
   account: PublicKeyStringAndAccount<Buffer>,
   setter: UpdateStateValueFunc,
+  useAll: boolean,
 ) => void;
 
 export type CheckAccountFunc = (account: AccountInfo<Buffer>) => boolean;

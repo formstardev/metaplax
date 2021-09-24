@@ -19,7 +19,6 @@ import {
   decodeMetadata,
   getAuctionExtended,
 } from '../../actions';
-import { WhitelistedCreator } from '../../models/metaplex';
 import { AccountInfo, Connection, PublicKey } from '@solana/web3.js';
 import {
   AccountAndPubkey,
@@ -35,8 +34,6 @@ import { processVaultData } from './processVaultData';
 import { ParsedAccount } from '../accounts/types';
 import { getEmptyMetaState } from './getEmptyMetaState';
 import { getMultipleAccounts } from '../accounts/getMultipleAccounts';
-import { getProgramAccounts } from './web3';
-import { createPipelineExecutor } from './createPipelineExecutor';
 
 export const USE_SPEED_RUN = false;
 const WHITELISTED_METADATA = ['98vYFjBYS9TguUMWQRPjy2SZuxKuUMcqR4vnQiLjZbte'];
@@ -55,6 +52,60 @@ const WHITELISTED_AUCTION_MANAGER = [
 ];
 const WHITELISTED_VAULT = ['3wHCBd3fYRPWjd5GqzrXanLJUKRyU3nECKbTPKfVwcFX'];
 
+async function getProgramAccounts(
+  connection: Connection,
+  programId: StringPublicKey,
+  configOrCommitment?: any,
+): Promise<Array<AccountAndPubkey>> {
+  const extra: any = {};
+  let commitment;
+  //let encoding;
+
+  if (configOrCommitment) {
+    if (typeof configOrCommitment === 'string') {
+      commitment = configOrCommitment;
+    } else {
+      commitment = configOrCommitment.commitment;
+      //encoding = configOrCommitment.encoding;
+
+      if (configOrCommitment.dataSlice) {
+        extra.dataSlice = configOrCommitment.dataSlice;
+      }
+
+      if (configOrCommitment.filters) {
+        extra.filters = configOrCommitment.filters;
+      }
+    }
+  }
+
+  const args = connection._buildArgs([programId], commitment, 'base64', extra);
+  const unsafeRes = await (connection as any)._rpcRequest(
+    'getProgramAccounts',
+    args,
+  );
+
+  const data = (
+    unsafeRes.result as Array<{
+      account: AccountInfo<[string, string]>;
+      pubkey: string;
+    }>
+  ).map(item => {
+    return {
+      account: {
+        // TODO: possible delay parsing could be added here
+        data: Buffer.from(item.account.data[0], 'base64'),
+        executable: item.account.executable,
+        lamports: item.account.lamports,
+        // TODO: maybe we can do it in lazy way? or just use string
+        owner: item.account.owner,
+      } as AccountInfo<Buffer>,
+      pubkey: item.pubkey,
+    };
+  });
+
+  return data;
+}
+
 export const limitedLoadAccounts = async (connection: Connection) => {
   const tempCache: MetaState = getEmptyMetaState();
   const updateTemp = makeSetter(tempCache);
@@ -62,7 +113,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
   const forEach =
     (fn: ProcessAccountsFunc) => async (accounts: AccountAndPubkey[]) => {
       for (const account of accounts) {
-        await fn(account, updateTemp);
+        await fn(account, updateTemp, false);
       }
     };
 
@@ -85,6 +136,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
           account: md,
         },
         updateTemp,
+        false,
       );
       if (editionData) {
         //@ts-ignore
@@ -95,6 +147,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
             account: editionData,
           },
           updateTemp,
+          false,
         );
       }
     }
@@ -120,6 +173,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
             account: auctionData.array[i],
           },
           updateTemp,
+          false,
         );
       });
     }
@@ -139,6 +193,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
           account: auctionManagerData,
         },
         updateTemp,
+        false,
       );
     }
   };
@@ -155,6 +210,7 @@ export const limitedLoadAccounts = async (connection: Connection) => {
           account: vaultData,
         },
         updateTemp,
+        false,
       );
     }
   };
@@ -260,52 +316,53 @@ export const limitedLoadAccounts = async (connection: Connection) => {
 
   await Promise.all(promises);
 
-  await postProcessMetadata(tempCache);
+  await postProcessMetadata(tempCache, true);
 
   return tempCache;
 };
 
-export const loadAccounts = async (connection: Connection) => {
+export const loadAccounts = async (connection: Connection, all: boolean) => {
   const tempCache: MetaState = getEmptyMetaState();
   const updateTemp = makeSetter(tempCache);
-  const forEachAccount = processingAccounts(updateTemp);
+
+  const forEach =
+    (fn: ProcessAccountsFunc) => async (accounts: AccountAndPubkey[]) => {
+      for (const account of accounts) {
+        await fn(account, updateTemp, all);
+      }
+    };
 
   const pullMetadata = async (creators: AccountAndPubkey[]) => {
-    await forEachAccount(processMetaplexAccounts)(creators);
+    await forEach(processMetaplexAccounts)(creators);
   };
 
   const basePromises = [
-    getProgramAccounts(connection, VAULT_ID).then(
-      forEachAccount(processVaultData),
-    ),
-    getProgramAccounts(connection, AUCTION_ID).then(
-      forEachAccount(processAuctions),
-    ),
+    getProgramAccounts(connection, VAULT_ID).then(forEach(processVaultData)),
+    getProgramAccounts(connection, AUCTION_ID).then(forEach(processAuctions)),
     getProgramAccounts(connection, METAPLEX_ID).then(
-      forEachAccount(processMetaplexAccounts),
-    ), // ???
+      forEach(processMetaplexAccounts),
+    ),
     getProgramAccounts(connection, METAPLEX_ID, {
       filters: [
         {
           dataSize: MAX_WHITELISTED_CREATOR_SIZE,
         },
       ],
-    }).then(pullMetadata), // ???
+    }).then(pullMetadata),
   ];
-
   await Promise.all(basePromises);
   const additionalPromises: Promise<void>[] = getAdditionalPromises(
     connection,
-    Object.values(tempCache.whitelistedCreatorsByCreator),
-    forEachAccount,
+    tempCache,
+    forEach,
   );
 
   await Promise.all(additionalPromises);
 
-  await postProcessMetadata(tempCache);
+  await postProcessMetadata(tempCache, all);
   console.log('Metadata size', tempCache.metadata.length);
 
-  await pullEditions(connection, updateTemp, tempCache);
+  await pullEditions(connection, updateTemp, tempCache, all);
 
   return tempCache;
 };
@@ -314,9 +371,9 @@ const pullEditions = async (
   connection: Connection,
   updateTemp: UpdateStateValueFunc,
   tempCache: MetaState,
+  all: boolean,
 ) => {
   console.log('Pulling editions for optimized metadata');
-
   let setOf100MetadataEditionKeys: string[] = [];
   const editionPromises: Promise<{
     keys: string[];
@@ -368,6 +425,7 @@ const pullEditions = async (
           account: returnedAccounts.array[j],
         },
         updateTemp,
+        all,
       );
     }
   }
@@ -377,41 +435,43 @@ const pullEditions = async (
     Object.keys(tempCache.masterEditions).length,
   );
 };
-
 const getAdditionalPromises = (
   connection: Connection,
-  whitelistedCreators: ParsedAccount<WhitelistedCreator>[],
-  forEach: ReturnType<typeof processingAccounts>,
+  tempCache: MetaState,
+  forEach: any,
 ): Promise<void>[] => {
   console.log('pulling optimized nfts');
-
+  const whitelistedCreators = Object.values(
+    tempCache.whitelistedCreatorsByCreator,
+  );
   const additionalPromises: Promise<void>[] = [];
-  for (const creator of whitelistedCreators) {
-    for (let i = 0; i < MAX_CREATOR_LIMIT; i++) {
-      const promise = getProgramAccounts(connection, METADATA_PROGRAM_ID, {
-        filters: [
-          {
-            memcmp: {
-              offset:
-                1 + // key
-                32 + // update auth
-                32 + // mint
-                4 + // name string length
-                MAX_NAME_LENGTH + // name
-                4 + // uri string length
-                MAX_URI_LENGTH + // uri
-                4 + // symbol string length
-                MAX_SYMBOL_LENGTH + // symbol
-                2 + // seller fee basis points
-                1 + // whether or not there is a creators vec
-                4 + // creators vec length
-                i * MAX_CREATOR_LEN,
-              bytes: creator.info.address,
+  for (let i = 0; i < MAX_CREATOR_LIMIT; i++) {
+    for (let j = 0; j < whitelistedCreators.length; j++) {
+      additionalPromises.push(
+        getProgramAccounts(connection, METADATA_PROGRAM_ID, {
+          filters: [
+            {
+              memcmp: {
+                offset:
+                  1 + // key
+                  32 + // update auth
+                  32 + // mint
+                  4 + // name string length
+                  MAX_NAME_LENGTH + // name
+                  4 + // uri string length
+                  MAX_URI_LENGTH + // uri
+                  4 + // symbol string length
+                  MAX_SYMBOL_LENGTH + // symbol
+                  2 + // seller fee basis points
+                  1 + // whether or not there is a creators vec
+                  4 + // creators vec length
+                  i * MAX_CREATOR_LEN,
+                bytes: whitelistedCreators[j].info.address,
+              },
             },
-          },
-        ],
-      }).then(forEach(processMetaData));
-      additionalPromises.push(promise);
+          ],
+        }).then(forEach(processMetaData)),
+      );
     }
   }
 
@@ -429,34 +489,22 @@ export const makeSetter =
     return state;
   };
 
-export const processingAccounts =
-  (updater: ReturnType<typeof makeSetter>) =>
-  (fn: ProcessAccountsFunc) =>
-  async (accounts: AccountAndPubkey[]) => {
-    await createPipelineExecutor(
-      accounts.values(),
-      account => fn(account, updater),
-      {
-        sequence: 20,
-        delay: 1,
-      },
-    );
-  };
-
-const postProcessMetadata = async (tempCache: MetaState) => {
+const postProcessMetadata = async (tempCache: MetaState, all: boolean) => {
   const values = Object.values(tempCache.metadataByMint);
 
   for (const metadata of values) {
-    await metadataByMintUpdater(metadata, tempCache);
+    await metadataByMintUpdater(metadata, tempCache, all);
   }
 };
 
 export const metadataByMintUpdater = async (
   metadata: ParsedAccount<Metadata>,
   state: MetaState,
+  all: boolean,
 ) => {
   const key = metadata.info.mint;
   if (
+    all ||
     isMetadataPartOfStore(
       metadata,
       state.store,
