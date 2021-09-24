@@ -14,12 +14,7 @@ import {
   SCHEMA,
   getSafetyDepositConfig,
 } from '.';
-import {
-  getEdition,
-  getEditionMarkPda,
-  getMetadata,
-  getAuctionExtended,
-} from '../../actions';
+import { getEdition, getEditionMarkPda, getMetadata, getAuctionExtended } from '../../actions';
 import { programIds, StringPublicKey, toPublicKey } from '../../utils';
 
 export async function redeemPrintingV2Bid(
