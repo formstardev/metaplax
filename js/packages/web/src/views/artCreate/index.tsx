@@ -51,7 +51,7 @@ export const ArtCreateView = () => {
   const connection = useConnection();
   const { env } = useConnectionConfig();
   const wallet = useWallet();
-  const [alertMessage, setAlertMessage] = useState<string>()
+  const [alertMessage, setAlertMessage] = useState<string>();
   const { step_param }: { step_param: string } = useParams();
   const history = useHistory();
   const { width } = useWindowDimensions();
@@ -109,7 +109,7 @@ export const ArtCreateView = () => {
       },
     };
     setStepsVisible(false);
-    setMinting(true)
+    setMinting(true);
 
     try {
       const _nft = await mintNFT(
@@ -122,8 +122,8 @@ export const ArtCreateView = () => {
       );
 
       if (_nft) setNft(_nft);
-    } catch(e: any) {
-      setAlertMessage(e.message)
+    } catch (e: any) {
+      setAlertMessage(e.message);
     } finally {
       setMinting(false);
     }
@@ -435,6 +435,7 @@ const UploadStep = (props: {
         </Row>
       )}
       <Form.Item
+        className={'url-form-action'}
         style={{
           width: '100%',
           flexDirection: 'column',
@@ -497,7 +498,11 @@ const UploadStep = (props: {
                   }),
               },
               image: coverFile?.name || '',
-              animation_url: (props.attributes.properties?.category !== MetadataCategory.Image && customURL) ? customURL : mainFile && mainFile.name,
+              animation_url:
+                props.attributes.properties?.category !==
+                  MetadataCategory.Image && customURL
+                  ? customURL
+                  : mainFile && mainFile.name,
             });
             props.setFiles([coverFile, mainFile].filter(f => f) as File[]);
             props.confirm();
@@ -1147,7 +1152,7 @@ const WaitingStep = (props: {
 const Congrats = (props: {
   nft?: {
     metadataAccount: StringPublicKey;
-  },
+  };
   alert?: string;
 }) => {
   const history = useHistory();
@@ -1157,7 +1162,7 @@ const Congrats = (props: {
       text: "I've created a new NFT artwork on Metaplex, check it out!",
       url: `${
         window.location.origin
-        }/#/art/${props.nft?.metadataAccount.toString()}`,
+      }/#/art/${props.nft?.metadataAccount.toString()}`,
       hashtags: 'NFT,Crypto,Metaplex',
       // via: "Metaplex",
       related: 'Metaplex,Solana',
@@ -1171,9 +1176,11 @@ const Congrats = (props: {
       <>
         <div className="waiting-title">Sorry, there was an error!</div>
         <p>{props.alert}</p>
-        <Button onClick={_ => history.push("/art/create")}>Back to Create NFT</Button>
+        <Button onClick={_ => history.push('/art/create')}>
+          Back to Create NFT
+        </Button>
       </>
-    )
+    );
   }
 
   return (
