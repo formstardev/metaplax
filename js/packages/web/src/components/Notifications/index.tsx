@@ -1,7 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import {
-  BellFilled,
-  BellOutlined,
   CheckCircleTwoTone,
   LoadingOutlined,
   PlayCircleOutlined,
@@ -20,6 +17,7 @@ import {
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection } from '@solana/web3.js';
 import { Badge, Popover, List } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { closePersonalEscrow } from '../../actions/closePersonalEscrow';
 import { decommAuctionManagerAndReturnPrizes } from '../../actions/decommAuctionManagerAndReturnPrizes';
@@ -184,27 +182,22 @@ export function useSettlementAuctions({
   const { accountByMint } = useUserAccounts();
   const walletPubkey = wallet?.publicKey?.toBase58();
   const { bidderPotsByAuctionAndBidder } = useMeta();
-  const auctionsNeedingSettling = [
-    ...useAuctions(AuctionViewState.Ended),
-    ...useAuctions(AuctionViewState.BuyNow),
-  ];
+  const auctionsNeedingSettling = [...useAuctions(AuctionViewState.Ended), ...useAuctions(AuctionViewState.BuyNow)];
 
   const [validDiscoveredEndedAuctions, setValidDiscoveredEndedAuctions] =
     useState<Record<string, number>>({});
   useMemo(() => {
     const f = async () => {
       const nextBatch = auctionsNeedingSettling
-        .filter(a => {
-          const isEndedInstantSale =
-            a.isInstantSale &&
-            a.items.length === a.auction.info.bidState.bids.length;
+        .filter(
+          a => {
+            const isEndedInstantSale = a.isInstantSale && a.items.length === a.auction.info.bidState.bids.length;
 
-          return (
-            walletPubkey &&
+           return walletPubkey &&
             a.auctionManager.authority === walletPubkey &&
-            (a.auction.info.ended() || isEndedInstantSale)
-          );
-        })
+             (a.auction.info.ended() || isEndedInstantSale)
+          }
+        )
         .sort(
           (a, b) =>
             (b.auction.info.endedAt?.toNumber() || 0) -
@@ -455,10 +448,7 @@ export function Notifications() {
     });
 
   const content = notifications.length ? (
-    <div
-      style={{ width: '300px', color: 'white' }}
-      className={'notifications-container'}
-    >
+    <div style={{ width: '300px' }}>
       <List
         itemLayout="vertical"
         size="small"
@@ -499,18 +489,20 @@ export function Notifications() {
   );
 
   const justContent = (
-    <Popover placement="bottomLeft" content={content} trigger="click">
-      <img src={'/bell.svg'} style={{ cursor: 'pointer' }} />
+    <Popover
+      className="noty-popover"
+      placement="bottomLeft"
+      content={content}
+      trigger="click"
+    >
+      <h1 className="title">M</h1>
     </Popover>
   );
 
   if (notifications.length === 0) return justContent;
   else
     return (
-      <Badge
-        count={notifications.length}
-        style={{ backgroundColor: 'white', color: 'black' }}
-      >
+      <Badge count={notifications.length} style={{ backgroundColor: 'white' }}>
         {justContent}
       </Badge>
     );
