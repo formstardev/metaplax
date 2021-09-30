@@ -272,13 +272,6 @@ export const loadAccounts = async (connection: Connection) => {
   const updateState = makeSetter(state);
   const forEachAccount = processingAccounts(updateState);
 
-  const forEach =
-    (fn: ProcessAccountsFunc) => async (accounts: AccountAndPubkey[]) => {
-      for (const account of accounts) {
-        await fn(account, updateState);
-      }
-    };
-
   const loadVaults = () =>
     getProgramAccounts(connection, VAULT_ID).then(
       forEachAccount(processVaultData),
@@ -298,7 +291,7 @@ export const loadAccounts = async (connection: Connection) => {
           dataSize: MAX_WHITELISTED_CREATOR_SIZE,
         },
       ],
-    }).then(forEach(processMetaplexAccounts));
+    }).then(forEachAccount(processMetaplexAccounts));
   const loadMetadata = () =>
     pullMetadataByCreators(connection, state, updateState);
   const loadEditions = () => pullEditions(connection, updateState, state);
