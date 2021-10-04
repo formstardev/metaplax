@@ -6,6 +6,7 @@ members = [
   "metaplex/program",
   "token-vault/program",
   "token-metadata/program",
+  "auction/cli",
   "metaplex/test",
   "token-vault/test",
   "token-metadata/test",
