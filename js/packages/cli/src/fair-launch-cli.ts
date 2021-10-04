@@ -1161,8 +1161,9 @@ program
       )
     )[0];
 
-    const fairLaunchLotteryBitmap = //@ts-ignore
-    (await getFairLaunchLotteryBitmap(fairLaunchObj.tokenMint))[0];
+    const fairLaunchLotteryBitmap = ( //@ts-ignore
+      await getFairLaunchLotteryBitmap(fairLaunchObj.tokenMint)
+    )[0];
 
     await adjustTicket({
       amountNumber,
@@ -1697,8 +1698,9 @@ program
       )
     )[0];
 
-    const fairLaunchLotteryBitmap = //@ts-ignore
-    (await getFairLaunchLotteryBitmap(fairLaunchObj.tokenMint))[0];
+    const fairLaunchLotteryBitmap = ( //@ts-ignore
+      await getFairLaunchLotteryBitmap(fairLaunchObj.tokenMint)
+    )[0];
 
     const ticket = await anchorProgram.account.fairLaunchTicket.fetch(
       fairLaunchTicket,
@@ -1874,8 +1876,9 @@ program
     const fairLaunchObj = await anchorProgram.account.fairLaunch.fetch(
       fairLaunchKey,
     );
-    const fairLaunchLotteryBitmap = //@ts-ignore
-    (await getFairLaunchLotteryBitmap(fairLaunchObj.tokenMint))[0];
+    const fairLaunchLotteryBitmap = ( //@ts-ignore
+      await getFairLaunchLotteryBitmap(fairLaunchObj.tokenMint)
+    )[0];
 
     await anchorProgram.rpc.startPhaseThree({
       accounts: {
