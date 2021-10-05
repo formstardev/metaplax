@@ -8,15 +8,15 @@ export const MetaplexModal = (props: any) => {
     <Modal
       bodyStyle={{
         background: '#2F2F2F',
-        boxShadow: '0px 20px 12px 8px rgba(0, 0, 0, 0.3)',
+        boxShadow: '0px 6px 12px 8px rgba(0, 0, 0, 0.3)',
+        borderRadius: 16,
         display: 'flex',
         flexDirection: 'column',
-
+        alignItems: 'center',
         ...bodyStyle,
       }}
-      className={'modal-box small-modal'}
       footer={null}
-      width={500}
+      width={400}
       {...rest}
     >
       {children}

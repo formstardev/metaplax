@@ -116,7 +116,6 @@ function ArtistModal({
   return (
     <>
       <Modal
-        className={'modal-box'}
         title="Add New Artist Address"
         visible={modalOpen}
         onOk={() => {
@@ -263,7 +262,7 @@ function InnerAdminView({
   ];
 
   return (
-    <Content className={'admin-content'}>
+    <Content>
       <Col style={{ marginTop: 10 }}>
         <Row>
           <Col span={21}>

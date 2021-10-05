@@ -56,11 +56,11 @@ programCommand('upload')
     'arweave',
   )
   .option(
-    '--ipfs-infura-project-id',
+    '--ipfs-infura-project-id <string>',
     'Infura IPFS project id (required if using IPFS)',
   )
   .option(
-    '--ipfs-infura-secret',
+    '--ipfs-infura-secret <string>',
     'Infura IPFS scret key (required if using IPFS)',
   )
   .option('--no-retain-authority', 'Do not retain authority to update metadata')
@@ -367,12 +367,17 @@ programCommand('show')
         candyMachine,
       );
       log.info('...Candy Machine...');
+      log.info('Key:', candyMachine.toBase58());
       //@ts-ignore
       log.info('authority: ', machine.authority.toBase58());
       //@ts-ignore
       log.info('wallet: ', machine.wallet.toBase58());
       //@ts-ignore
-      log.info('tokenMint: ', machine.tokenMint.toBase58());
+      log.info(
+        'tokenMint: ',
+        //@ts-ignore
+        machine.tokenMint ? machine.tokenMint.toBase58() : null,
+      );
       //@ts-ignore
       log.info('config: ', machine.config.toBase58());
       //@ts-ignore
@@ -398,7 +403,7 @@ programCommand('show')
     );
     log.info('...Config...');
     //@ts-ignore
-    log.info('authority: ', config.authority);
+    log.info('authority: ', config.authority.toBase58());
     //@ts-ignore
     log.info('symbol: ', config.data.symbol);
     //@ts-ignore
@@ -577,7 +582,7 @@ programCommand('update_candy_machine')
       );
     if (lamports)
       log.info(` - updated price: ${lamports} lamports (${price} SOL)`);
-    log.info('updated_candy_machine finished', tx);
+    log.info('update_candy_machine finished', tx);
   });
 
 programCommand('mint_one_token').action(async (directory, cmd) => {
