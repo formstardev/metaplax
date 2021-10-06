@@ -21,7 +21,6 @@ import {
   MAX_EDITION_LEN,
   useWalletModal,
   VaultState,
-  BidStateType,
 } from '@oyster/common';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { AuctionView, useBidsForAuction, useUserBalance } from '../../hooks';
@@ -255,23 +254,14 @@ export const AuctionCard = ({
   const isAuctionNotStarted =
     auctionView.auction.info.state === AuctionState.Created;
 
-  const isOpenEditionSale =
-    auctionView.auction.info.bidState.type === BidStateType.OpenEdition;
-  const doesInstantSaleHasNoItems =
-    Number(auctionView.myBidderPot?.info.emptied) !== 0 &&
-    auctionView.auction.info.bidState.max.toNumber() === bids.length;
-
-  const shouldHideInstantSale =
-    !isOpenEditionSale &&
-    auctionView.isInstantSale &&
-    isAuctionManagerAuthorityNotWalletOwner &&
-    doesInstantSaleHasNoItems;
-
-  const shouldHide =
-    shouldHideInstantSale ||
-    auctionView.vault.info.state === VaultState.Deactivated;
-
-  if (shouldHide) {
+  //if instant sale auction bid and claimed hide buttons
+  if (
+    (auctionView.isInstantSale &&
+      Number(auctionView.myBidderPot?.info.emptied) !== 0 &&
+      isAuctionManagerAuthorityNotWalletOwner &&
+      auctionView.auction.info.bidState.max.toNumber() === bids.length) ||
+    auctionView.vault.info.state === VaultState.Deactivated
+  ) {
     return <></>;
   }
 
@@ -525,16 +515,13 @@ export const AuctionCard = ({
 
               const instantSale = async () => {
                 setLoading(true);
-
                 const instantSalePrice =
                   auctionView.auctionDataExtended?.info.instantSalePrice;
                 const winningConfigType =
-                  auctionView.participationItem?.winningConfigType ||
                   auctionView.items[0][0].winningConfigType;
-                const isAuctionItemMaster = [
-                  WinningConfigType.FullRightsTransfer,
-                  WinningConfigType.TokenOnlyTransfer,
-                ].includes(winningConfigType);
+                const isAuctionItemMaster =
+                  winningConfigType === WinningConfigType.FullRightsTransfer ||
+                  winningConfigType === WinningConfigType.TokenOnlyTransfer;
                 const allowBidToPublic =
                   myPayingAccount &&
                   !auctionView.myBidderPot &&
@@ -545,10 +532,7 @@ export const AuctionCard = ({
                   isAuctionItemMaster;
 
                 // Placing a "bid" of the full amount results in a purchase to redeem.
-                if (
-                  instantSalePrice &&
-                  (allowBidToPublic || allowBidToAuctionOwner)
-                ) {
+                if (instantSalePrice && (allowBidToPublic || allowBidToAuctionOwner)) {
                   try {
                     const bid = await sendPlaceBid(
                       connection,
