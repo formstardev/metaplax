@@ -57,26 +57,3 @@ export const MetaAvatar = (props: {
 
   return <Avatar.Group>{controls || null}</Avatar.Group>;
 };
-
-export const MetaAvatarDetailed = (props: {
-  creators?: Artist[];
-  size?: number;
-}) => {
-  const { creators } = props;
-  const size = props.size || 32;
-  if (!creators || creators.length === 0) {
-    return <Avatar size={size} src={false} />;
-  }
-  return (
-    <div>
-      {(creators || []).map((creator, _idx) => (
-        <div style={{ display: 'flex' }} key={_idx}>
-          <MetaAvatarItem creator={creator} alt={creator.name} size={size} />
-          <p style={{ marginLeft: 10 }}>
-            {creator.name ? creator.name : 'No name provided.'}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-};
