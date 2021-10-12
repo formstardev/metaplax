@@ -47,9 +47,6 @@ import {
   MAX_PRIZE_TRACKING_TICKET_SIZE,
   WinningConfigType,
 } from '@oyster/common/dist/lib/models/metaplex/index';
-import { useActionButtonContent } from './hooks/useActionButtonContent';
-import { endSale } from './utils/endSale';
-import { useInstantSaleState } from './hooks/useInstantSaleState';
 
 async function calculateTotalCostOfRedeemingOtherPeoplesBids(
   connection: Connection,
@@ -207,8 +204,6 @@ export const AuctionCard = ({
   const [showBidModal, setShowBidModal] = useState<boolean>(false);
   const [showRedeemedBidModal, setShowRedeemedBidModal] =
     useState<boolean>(false);
-  const [showEndingBidModal, setShowEndingBidModal] =
-    useState<boolean>(false);
   const [showRedemptionIssue, setShowRedemptionIssue] =
     useState<boolean>(false);
   const [showBidPlaced, setShowBidPlaced] = useState<boolean>(false);
@@ -275,12 +270,6 @@ export const AuctionCard = ({
   const shouldHide =
     shouldHideInstantSale ||
     auctionView.vault.info.state === VaultState.Deactivated;
-
-  const {
-    isInstantSale,
-    canEndInstantSale
-  } = useInstantSaleState(auctionView)
-  const actionButtonContent = useActionButtonContent(auctionView)
 
   if (shouldHide) {
     return <></>;
@@ -415,8 +404,16 @@ export const AuctionCard = ({
             >
               {loading ? (
                 <Spin />
+              ) : auctionView.isInstantSale ? (
+                !isAuctionManagerAuthorityNotWalletOwner ? (
+                  'Claim item'
+                ) : auctionView.myBidderPot ? (
+                  'Claim Purchase'
+                ) : (
+                  'Buy Now'
+                )
               ) : (
-                actionButtonContent
+                'Place bid'
               )}
             </Button>
           ))}
@@ -458,35 +455,6 @@ export const AuctionCard = ({
           successful
         </p>
         <Button onClick={() => setShowBidPlaced(false)} className="overlay-btn">
-          Got it
-        </Button>
-      </MetaplexOverlay>
-
-      <MetaplexOverlay visible={showEndingBidModal}>
-        <Confetti />
-        <h1
-          className="title"
-          style={{
-            fontSize: '3rem',
-            marginBottom: 20,
-          }}
-        >
-          Congratulations
-        </h1>
-        <p
-          style={{
-            color: 'white',
-            textAlign: 'center',
-            fontSize: '2rem',
-          }}
-        >
-          Your sale has been ended please view your NFTs in <Link to="/artworks">My Items</Link>
-          .
-        </p>
-        <Button
-          onClick={() => setShowEndingBidModal(false)}
-          className="overlay-btn"
-        >
           Got it
         </Button>
       </MetaplexOverlay>
@@ -554,31 +522,6 @@ export const AuctionCard = ({
                   setLoading(false);
                 }
               };
-
-              const endInstantSale = async () => {
-                setLoading(true);
-
-                try {
-                  await endSale({
-                    auctionView,
-                    connection,
-                    accountByMint,
-                    bids,
-                    bidRedemptions,
-                    prizeTrackingTickets,
-                    wallet
-                  })
-                } catch (e) {
-                  console.error('endAuction', e);
-                  setShowBidModal(false);
-                  setLoading(false);
-                  return;
-                }
-
-                setShowBidModal(false);
-                setShowEndingBidModal(true);
-                setLoading(false);
-              }
 
               const instantSale = async () => {
                 setLoading(true);
@@ -655,26 +598,12 @@ export const AuctionCard = ({
                 setLoading(false);
               };
 
-
-              const actionBtnFn = () => {
-                if (!isInstantSale) {
-                  return placeBid();
-                }
-
-                if (canEndInstantSale) {
-                  return endInstantSale();
-                }
-
-                return instantSale();
-              }
-
               return (
                 <>
                   <h2 className="modal-title">
-                    {canEndInstantSale && 'End instant sale'}
-                    {!canEndInstantSale && (auctionView.isInstantSale
+                    {auctionView.isInstantSale
                       ? 'Confirm Purchase'
-                      : 'Place a bid')}
+                      : 'Place a bid'}
                   </h2>
                   {!!gapTime && (
                     <div
@@ -696,7 +625,7 @@ export const AuctionCard = ({
                       )}
                     </div>
                   )}
-                  {!canEndInstantSale && <AuctionNumbers auctionView={auctionView} />}
+                  <AuctionNumbers auctionView={auctionView} />
                   <br />
                   {tickSizeInvalid && tickSize && (
                     <span style={{ color: 'red' }}>
@@ -774,7 +703,9 @@ export const AuctionCard = ({
                     type="primary"
                     size="large"
                     className="action-btn"
-                    onClick={() => actionBtnFn()}
+                    onClick={() =>
+                      auctionView.isInstantSale ? instantSale() : placeBid()
+                    }
                     disabled={
                       tickSizeInvalid ||
                       gapBidInvalid ||
@@ -788,8 +719,15 @@ export const AuctionCard = ({
                   >
                     {loading || !accountByMint.get(QUOTE_MINT.toBase58()) ? (
                       <Spin />
+                    ) : auctionView.isInstantSale ? (
+                      auctionView.myBidderPot ||
+                      !isAuctionManagerAuthorityNotWalletOwner ? (
+                        'Claim'
+                      ) : (
+                        'Purchase'
+                      )
                     ) : (
-                      actionButtonContent
+                      'Place Bid'
                     )}
                   </Button>
                 </>

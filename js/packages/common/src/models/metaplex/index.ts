@@ -382,7 +382,7 @@ export class StartAuctionArgs {
 }
 
 export class EndAuctionArgs {
-  instruction = 20;
+  instruction = 21;
   reveal: BN[] | null;
   constructor(args: { reveal: BN[] | null }) {
     this.reveal = args.reveal;
