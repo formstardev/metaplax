@@ -122,7 +122,6 @@ function ArtistModal({
   return (
     <>
       <Modal
-        className={'modal-box'}
         title="Add New Artist Address"
         visible={modalOpen}
         onOk={() => {
@@ -192,11 +191,10 @@ function InnerAdminView({
   const [updatedCreators, setUpdatedCreators] = useState<
     Record<string, WhitelistedCreator>
   >({});
-  const [filteredMetadata, setFilteredMetadata] =
-    useState<{
-      available: ParsedAccount<MasterEditionV1>[];
-      unavailable: ParsedAccount<MasterEditionV1>[];
-    }>();
+  const [filteredMetadata, setFilteredMetadata] = useState<{
+    available: ParsedAccount<MasterEditionV1>[];
+    unavailable: ParsedAccount<MasterEditionV1>[];
+  }>();
   const [loading, setLoading] = useState<boolean>();
   const { metadata, masterEditions } = useMeta();
   const state = useMeta();
@@ -270,7 +268,7 @@ function InnerAdminView({
   ];
 
   return (
-    <Content className={'admin-content'}>
+    <Content>
       <Col style={{ marginTop: 10 }}>
         <Row>
           <Col span={21}>
