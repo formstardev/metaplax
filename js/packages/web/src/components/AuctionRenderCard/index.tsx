@@ -8,9 +8,18 @@ import {
   useMint,
 } from '@oyster/common';
 import { ArtContent } from '../ArtContent';
-import { AuctionView, AuctionViewState, useArt } from '../../hooks';
+import {
+  AuctionView,
+  AuctionViewState,
+  useArt,
+  useBidsForAuction,
+  useCreators,
+} from '../../hooks';
 import { AmountLabel } from '../AmountLabel';
+import { useHighestBidForAuction } from '../../hooks';
 import { BN } from 'bn.js';
+import { MetaAvatar } from '../MetaAvatar';
+import { AuctionCountdown } from '../AuctionNumbers';
 
 const { Meta } = Card;
 export interface AuctionCard extends CardProps {
@@ -21,8 +30,10 @@ export const AuctionRenderCard = (props: AuctionCard) => {
   const { auctionView } = props;
   const id = auctionView.thumbnail.metadata.pubkey;
   const art = useArt(id);
+  const creators = useCreators(auctionView);
   const name = art?.title || ' ';
   const [state, setState] = useState<CountdownState>();
+  const bids = useBidsForAuction(auctionView.auction.pubkey);
   const mintInfo = useMint(auctionView.auction.info.tokenMint);
 
   const participationFixedPrice =
@@ -34,7 +45,7 @@ export const AuctionRenderCard = (props: AuctionCard) => {
       : 0;
   const isUpcoming = auctionView.state === AuctionViewState.Upcoming;
 
-  const winningBid = auctionView.auction.info.bidState.getAmountAt(0);
+  const winningBid = useHighestBidForAuction(auctionView.auction.pubkey);
   const ended =
     !auctionView.isInstantSale &&
     state?.hours === 0 &&
@@ -43,7 +54,7 @@ export const AuctionRenderCard = (props: AuctionCard) => {
 
   let currentBid: number | string = 0;
   let label = '';
-  if (isUpcoming) {
+  if (isUpcoming || bids) {
     label = ended
       ? 'Ended'
       : auctionView.isInstantSale
@@ -55,9 +66,12 @@ export const AuctionRenderCard = (props: AuctionCard) => {
     );
   }
 
-  if (!isUpcoming) {
+  if (!isUpcoming && bids.length > 0) {
     label = ended ? 'Winning bid' : 'Current bid';
-    currentBid = winningBid ? formatTokenAmount(winningBid) : 'No Bid';
+    currentBid =
+      winningBid && Number.isFinite(winningBid.info.lastBid?.toNumber())
+        ? formatTokenAmount(winningBid.info.lastBid)
+        : 'No Bid';
   }
 
   const auction = auctionView.auction.info;
@@ -75,52 +89,39 @@ export const AuctionRenderCard = (props: AuctionCard) => {
   }, [auction, setState]);
 
   const card = (
-    <Card
-      hoverable={true}
-      className={`art-card`}
-      cover={
-        <>
+    <Card hoverable={true} className={`auction-render-card`} bordered={false}>
+      <div className={'card-art-info'}>
+        <div className={'card-artist-info'}>
+          <MetaAvatar creators={[creators[0]]} />
+          <span className={'artist-name'}>
+            {creators[0].name || creators[0].address?.substr(0, 6)}...
+          </span>
+        </div>
+        <div className={'art-content-wrapper'}>
           <ArtContent
             className="auction-image no-events"
             preview={false}
             pubkey={id}
             allowMeshRender={false}
           />
-        </>
-      }
-    >
-      <Meta
-        title={`${name}`}
-        description={
-          <>
-            <h4 style={{ marginBottom: 0 }}>{label}</h4>
-            <div className="bids">
-              <AmountLabel
-                style={{ marginBottom: 10 }}
-                containerStyle={{ flexDirection: 'row' }}
-                title={label}
-                amount={currentBid}
-                ended={ended}
-              />
-            </div>
-            {/* {endAuctionAt && hasTimer && (
-              <div className="cd-container">
-                {hours === 0 && minutes === 0 && seconds === 0 ? (
-                  <div className="cd-title">Finished</div>
-                ) : (
-                  <>
-                    <div className="cd-title">Ending in</div>
-                    <div className="cd-time">
-                      {hours}h {minutes}m {seconds}s
-                      pants
-                    </div>
-                  </>
-                )}
-              </div>
-            )} */}
-          </>
-        }
-      />
+        </div>
+        <div className={'art-name'}>{name}</div>
+        {!ended && (
+          <div className={'art-auction-info'}>
+            <span className={'info-message'}>ENDING IN</span>
+            <AuctionCountdown auctionView={auctionView} labels={false} />
+          </div>
+        )}
+      </div>
+      <div className="card-bid-info">
+        <span className={'text-uppercase info-message'}>{label}</span>
+        <AmountLabel
+          containerStyle={{ flexDirection: 'row' }}
+          title={label}
+          amount={currentBid}
+          iconSize={24}
+        />
+      </div>
     </Card>
   );
 
