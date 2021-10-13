@@ -73,7 +73,6 @@ programCommand('upload')
     '(existing) AWS S3 Bucket name (required if using aws)',
   )
   .option('--no-retain-authority', 'Do not retain authority to update metadata')
-  .option('--no-mutable', 'Metadata will not be editable')
   .action(async (files: string[], options, cmd) => {
     const {
       number,
@@ -85,7 +84,6 @@ programCommand('upload')
       ipfsInfuraSecret,
       awsS3Bucket,
       retainAuthority,
-      mutable,
     } = cmd.opts();
 
     if (storage === 'ipfs' && (!ipfsInfuraProjectId || !ipfsInfuraSecret)) {
@@ -93,15 +91,13 @@ programCommand('upload')
         'IPFS selected as storage option but Infura project id or secret key were not provided.',
       );
     }
-    if (storage === 'aws' && !awsS3Bucket) {
+    if (storage === 'aws' && (!awsS3Bucket)) {
       throw new Error(
         'aws selected as storage option but existing bucket name (--aws-s3-bucket) not provided.',
       );
     }
     if (!(storage === 'arweave' || storage === 'ipfs' || storage === 'aws')) {
-      throw new Error(
-        "Storage option must either be 'arweave', 'ipfs', or 'aws'.",
-      );
+      throw new Error("Storage option must either be 'arweave', 'ipfs', or 'aws'.");
     }
     const ipfsCredentials = {
       projectId: ipfsInfuraProjectId,
@@ -144,7 +140,6 @@ programCommand('upload')
         elemCount,
         storage,
         retainAuthority,
-        mutable,
         ipfsCredentials,
         awsS3Bucket,
       );
@@ -463,8 +458,6 @@ programCommand('show')
       log.info('maxSupply: ', config.data.maxSupply.toNumber());
     //@ts-ignore
     log.info('retainAuthority: ', config.data.retainAuthority);
-    //@ts-ignore
-    log.info('isMutable: ', config.data.isMutable);
     //@ts-ignore
     log.info('maxNumberOfLines: ', config.data.maxNumberOfLines);
   });
