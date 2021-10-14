@@ -382,7 +382,7 @@ export class StartAuctionArgs {
 }
 
 export class EndAuctionArgs {
-  instruction = 21;
+  instruction = 20;
   reveal: BN[] | null;
   constructor(args: { reveal: BN[] | null }) {
     this.reveal = args.reveal;
@@ -594,6 +594,7 @@ export class WhitelistedCreator {
   name?: string;
   image?: string;
   description?: string;
+  background?: string;
 
   constructor(args: { address: string; activated: boolean }) {
     this.address = args.address;

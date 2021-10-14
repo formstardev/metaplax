@@ -1,10 +1,22 @@
-import { formatTokenAmount, fromLamports, useMint, PriceFloorType } from '@oyster/common';
-import { AuctionView, AuctionViewState, useBidsForAuction, useHighestBidForAuction } from '../../../hooks';
+import {
+  BidStateType,
+  formatTokenAmount,
+  fromLamports,
+  PriceFloorType,
+  useMint,
+} from '@oyster/common';
+import {
+  AuctionView,
+  AuctionViewState,
+  useBidsForAuction,
+  useHighestBidForAuction,
+} from '../../../hooks';
 import { BN } from 'bn.js';
 
 interface AuctionStatusLabels {
   status: string;
   amount: string | number;
+  ended: boolean;
 }
 
 export const useAuctionStatus = (
@@ -22,9 +34,8 @@ export const useAuctionStatus = (
       ? auctionView.auction.info.priceFloor.minPrice?.toNumber() || 0
       : 0;
 
-
   let status = 'Starting Bid';
-  
+
   let amount: string | number = fromLamports(
     participationOnly ? participationFixedPrice : priceFloor,
     mintInfo,
@@ -32,23 +43,31 @@ export const useAuctionStatus = (
 
   const countdown = auctionView.auction.info.timeToEnd();
 
-  let ended = countdown?.hours === 0 && countdown?.minutes === 0 && countdown?.seconds === 0;
+  const ended =
+    countdown?.hours === 0 &&
+    countdown?.minutes === 0 &&
+    countdown?.seconds === 0;
 
   if (auctionView.isInstantSale) {
     const soldOut = bids.length === auctionView.items.length;
-    
+    const isOpen =
+      auctionView.auction.info.bidState.type === BidStateType.OpenEdition;
+
     status = auctionView.state === AuctionViewState.Ended ? 'Ended' : 'Price';
 
-    if (soldOut) {
+    if (soldOut && !isOpen) {
       status = 'Sold Out';
     }
 
-    amount = formatTokenAmount(auctionView.auctionDataExtended?.info.instantSalePrice?.toNumber());
+    amount = formatTokenAmount(
+      auctionView.auctionDataExtended?.info.instantSalePrice?.toNumber(),
+    );
 
     return {
       status,
       amount,
-    }
+      ended,
+    };
   }
 
   if (bids.length > 0) {
@@ -60,18 +79,21 @@ export const useAuctionStatus = (
     if (bids.length === 0) {
       return {
         status: 'Ended',
-        amount
-      }
+        amount,
+        ended,
+      };
     }
 
     return {
       status: 'Winning Bid',
-      amount
-    }
+      amount,
+      ended,
+    };
   }
 
   return {
     status,
     amount,
-  }
+    ended,
+  };
 };
