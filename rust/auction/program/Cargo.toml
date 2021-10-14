@@ -1,5 +1,5 @@
 [package]
-name = "metaplex-auction"
+name = "spl-auction"
 version = "0.0.1"
 description = "Solana Auction Program"
 authors = ["Metaplex Maintainers <maintainers@metaplex.com>"]

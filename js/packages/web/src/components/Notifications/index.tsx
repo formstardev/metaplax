@@ -1,4 +1,3 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import {
   CheckCircleTwoTone,
   LoadingOutlined,
@@ -18,6 +17,7 @@ import {
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Connection } from '@solana/web3.js';
 import { Badge, Popover, List } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { closePersonalEscrow } from '../../actions/closePersonalEscrow';
 import { decommAuctionManagerAndReturnPrizes } from '../../actions/decommAuctionManagerAndReturnPrizes';
@@ -320,7 +320,7 @@ export function useSettlementAuctions({
               metadataByAuction,
               undefined,
             );
-            if (completeAuctionView) {
+            if(completeAuctionView) {
               await settle(
                 connection,
                 wallet,
@@ -497,10 +497,7 @@ export function Notifications() {
     });
 
   const content = notifications.length ? (
-    <div
-      style={{ width: '300px', color: 'white' }}
-      className={'notifications-container'}
-    >
+    <div style={{ width: '300px' }}>
       <List
         itemLayout="vertical"
         size="small"
@@ -541,18 +538,20 @@ export function Notifications() {
   );
 
   const justContent = (
-    <Popover placement="bottomLeft" content={content} trigger="click">
-      <img src={'/bell.svg'} style={{ cursor: 'pointer' }} />
+    <Popover
+      className="noty-popover"
+      placement="bottomLeft"
+      content={content}
+      trigger="click"
+    >
+      <h1 className="title">M</h1>
     </Popover>
   );
 
   if (notifications.length === 0) return justContent;
   else
     return (
-      <Badge
-        count={notifications.length}
-        style={{ backgroundColor: 'white', color: 'black' }}
-      >
+      <Badge count={notifications.length} style={{ backgroundColor: 'white' }}>
         {justContent}
       </Badge>
     );
