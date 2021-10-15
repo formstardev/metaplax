@@ -27,17 +27,15 @@ export const SetupView = () => {
   const [storeAddress, setStoreAddress] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_STORE_OWNER_ADDRESS) {
-      const getStore = async () => {
-        if (wallet.publicKey) {
-          const store = await setStoreForOwner(wallet.publicKey.toBase58());
-          setStoreAddress(store);
-        } else {
-          setStoreAddress(undefined);
-        }
-      };
-      getStore();
-    }
+    const getStore = async () => {
+      if (wallet.publicKey) {
+        const store = await setStoreForOwner(wallet.publicKey.toBase58());
+        setStoreAddress(store);
+      } else {
+        setStoreAddress(undefined);
+      }
+    };
+    getStore();
   }, [wallet.publicKey]);
 
   const initializeStore = async () => {

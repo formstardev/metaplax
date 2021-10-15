@@ -37,7 +37,6 @@ import {
 } from '../../actions/convertMasterEditions';
 import { Link } from 'react-router-dom';
 import { SetupVariables } from '../../components/SetupVariables';
-import { cacheAllAuctions } from '../../actions/cacheAllAuctions';
 
 const { Content } = Layout;
 export const AdminView = () => {
@@ -52,12 +51,7 @@ export const AdminView = () => {
   const { storeAddress, setStoreForOwner, isConfigured } = useStore();
 
   useEffect(() => {
-    if (
-      !store &&
-      !storeAddress &&
-      wallet.publicKey &&
-      !process.env.NEXT_PUBLIC_STORE_OWNER_ADDRESS
-    ) {
+    if (!store && !storeAddress && wallet.publicKey) {
       setStoreForOwner(wallet.publicKey.toBase58());
     }
   }, [store, storeAddress, wallet.publicKey]);
@@ -122,6 +116,7 @@ function ArtistModal({
   return (
     <>
       <Modal
+        className={'modal-box'}
         title="Add New Artist Address"
         visible={modalOpen}
         onOk={() => {
@@ -191,13 +186,13 @@ function InnerAdminView({
   const [updatedCreators, setUpdatedCreators] = useState<
     Record<string, WhitelistedCreator>
   >({});
-  const [filteredMetadata, setFilteredMetadata] = useState<{
-    available: ParsedAccount<MasterEditionV1>[];
-    unavailable: ParsedAccount<MasterEditionV1>[];
-  }>();
+  const [filteredMetadata, setFilteredMetadata] =
+    useState<{
+      available: ParsedAccount<MasterEditionV1>[];
+      unavailable: ParsedAccount<MasterEditionV1>[];
+    }>();
   const [loading, setLoading] = useState<boolean>();
   const { metadata, masterEditions } = useMeta();
-  const state = useMeta();
 
   const { accountByMint } = useUserAccounts();
   useMemo(() => {
@@ -268,7 +263,7 @@ function InnerAdminView({
   ];
 
   return (
-    <Content>
+    <Content className={'admin-content'}>
       <Col style={{ marginTop: 10 }}>
         <Row>
           <Col span={21}>
@@ -363,21 +358,6 @@ function InnerAdminView({
           </Col>{' '}
         </>
       )}
-      <Col>
-        <p style={{'marginTop': '30px'}}>Upgrade the performance of your existing auctions.</p>
-        <Row>
-          <Button
-            disabled={loading}
-            onClick={async () => {
-              setLoading(true);
-              await cacheAllAuctions(wallet, connection, state);
-              setLoading(false);
-            }}
-          >
-            {loading ? <Spin /> : <span>Upgrade Auction Performance</span>}
-          </Button>
-        </Row>
-      </Col>
     </Content>
   );
 }

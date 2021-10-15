@@ -374,10 +374,7 @@ export const InnerBillingView = ({
   const art = useArt(id);
   const balance = useUserBalance(auctionView.auction.info.tokenMint);
   const [escrowBalance, setEscrowBalance] = useState<number | undefined>();
-  const { whitelistedCreatorsByCreator, pullBillingPage } = useMeta();
-  useEffect(() => {
-    pullBillingPage(id);
-  }, []);
+  const { whitelistedCreatorsByCreator } = useMeta();
   const [escrowBalanceRefreshCounter, setEscrowBalanceRefreshCounter] =
     useState(0);
 
