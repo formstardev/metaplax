@@ -103,7 +103,7 @@ export const ArtworksView = () => {
                 </TabPane>
               )}
             </Tabs>
-            {connected && storeIndexer.length !== 0 && (
+            {connected && storeIndexer.length && (
               <a onClick={() => pullAllMetadata()}>Load all metadata</a>
             )}
           </Row>
