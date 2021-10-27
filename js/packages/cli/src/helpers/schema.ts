@@ -3,7 +3,7 @@ import base58 from 'bs58';
 import { PublicKey } from '@solana/web3.js';
 type StringPublicKey = string;
 
-import { BN } from '@project-serum/anchor';
+import BN from 'bn.js';
 
 export class Creator {
   address: StringPublicKey;
@@ -53,23 +53,6 @@ export class CreateMetadataArgs {
   }
 }
 
-export class UpdateMetadataArgs {
-  instruction: number = 1;
-  data: Data | null;
-  // Not used by this app, just required for instruction
-  updateAuthority: StringPublicKey | null;
-  primarySaleHappened: boolean | null;
-  constructor(args: {
-    data?: Data;
-    updateAuthority?: string;
-    primarySaleHappened: boolean | null;
-  }) {
-    this.data = args.data ? args.data : null;
-    this.updateAuthority = args.updateAuthority ? args.updateAuthority : null;
-    this.primarySaleHappened = args.primarySaleHappened;
-  }
-}
-
 export class CreateMasterEditionArgs {
   instruction: number = 10;
   maxSupply: BN | null;
@@ -97,18 +80,6 @@ export const METADATA_SCHEMA = new Map<any, any>([
       fields: [
         ['instruction', 'u8'],
         ['maxSupply', { kind: 'option', type: 'u64' }],
-      ],
-    },
-  ],
-  [
-    UpdateMetadataArgs,
-    {
-      kind: 'struct',
-      fields: [
-        ['instruction', 'u8'],
-        ['data', { kind: 'option', type: Data }],
-        ['updateAuthority', { kind: 'option', type: 'pubkeyAsString' }],
-        ['primarySaleHappened', { kind: 'option', type: 'u8' }],
       ],
     },
   ],

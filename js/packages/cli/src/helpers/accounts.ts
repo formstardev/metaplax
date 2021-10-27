@@ -9,6 +9,7 @@ import {
 } from './constants';
 import * as anchor from '@project-serum/anchor';
 import fs from 'fs';
+import BN from 'bn.js';
 import { createConfigAccount } from './instructions';
 import { web3 } from '@project-serum/anchor';
 import log from 'loglevel';
@@ -17,11 +18,11 @@ export const createConfig = async function (
   anchorProgram: anchor.Program,
   payerWallet: Keypair,
   configData: {
-    maxNumberOfLines: anchor.BN;
+    maxNumberOfLines: BN;
     symbol: string;
     sellerFeeBasisPoints: number;
     isMutable: boolean;
-    maxSupply: anchor.BN;
+    maxSupply: BN;
     retainAuthority: boolean;
     creators: {
       address: PublicKey;
@@ -32,19 +33,6 @@ export const createConfig = async function (
 ) {
   const configAccount = Keypair.generate();
   const uuid = uuidFromConfigPubkey(configAccount.publicKey);
-
-  if (!configData.creators || configData.creators.length === 0) {
-    throw new Error(`Invalid config, there must be at least one creator.`);
-  }
-
-  const totalShare = (configData.creators || []).reduce(
-    (acc, curr) => acc + curr.share,
-    0,
-  );
-
-  if (totalShare !== 100) {
-    throw new Error(`Invalid config, creators shares must add up to 100`);
-  }
 
   return {
     config: configAccount.publicKey,

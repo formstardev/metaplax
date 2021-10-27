@@ -2226,20 +2226,14 @@ program
     '-r, --rpc-url <string>',
     'custom rpc url since this is a heavy command',
   )
-  .option(
-    '-w, --whitelist-json <path>',
-    `Whitelist json location`
-  )
   .action(async (_, cmd) => {
-    const { env, keypair, fairLaunch, rpcUrl, whitelistJson } = cmd.opts();
+    const { env, keypair, fairLaunch, rpcUrl } = cmd.opts();
     const walletKeyPair = loadWalletKey(keypair);
     const anchorProgram = await loadFairLaunchProgram(
       walletKeyPair,
       env,
       rpcUrl,
     );
-
-    const whitelist: string[] | null = whitelistJson ? JSON.parse(fs.readFileSync(whitelistJson).toString()) : null;
 
     const fairLaunchKey = new anchor.web3.PublicKey(fairLaunch);
     const fairLaunchObj = await anchorProgram.account.fairLaunch.fetch(
@@ -2326,7 +2320,7 @@ program
 
     const ticketsFlattened = ticketKeys.flat();
 
-    const states: { seq: number; number: anchor.BN; eligible: boolean, whitelisted: boolean }[][] =
+    const states: { seq: number; number: anchor.BN; eligible: boolean }[][] =
       await Promise.all(
         chunks(Array.from(Array(ticketsFlattened.length).keys()), 1000).map(
           async allIndexesInSlice => {
@@ -2360,7 +2354,6 @@ program
                         //@ts-ignore
                         fairLaunchObj.currentMedian.toNumber()
                     ),
-                    whitelisted: whitelist?.includes(el.buyer.toBase58())
                   };
                 }),
               );
@@ -2389,20 +2382,12 @@ program
       statesFlat.filter(s => s.eligible).length,
     );
 
-    let chosen: { seq: number; eligible: boolean; chosen: boolean; whitelisted: boolean }[];
+    let chosen: { seq: number; eligible: boolean; chosen: boolean }[];
     if (numWinnersRemaining >= statesFlat.length) {
       console.log('More or equal nfts than winners, everybody wins.');
       chosen = statesFlat.map(s => ({ ...s, chosen: true }));
     } else {
       chosen = statesFlat.map(s => ({ ...s, chosen: false }));
-
-      console.log('Starting whitelist with', numWinnersRemaining, 'winners remaining');
-      for (let i = 0; i < chosen.length; i++) {
-        if (chosen[i].chosen != true && chosen[i].eligible && chosen[i].whitelisted) {
-          chosen[i].chosen = true;
-          numWinnersRemaining--;
-        }
-      }
 
       console.log('Doing lottery for', numWinnersRemaining);
       while (numWinnersRemaining > 0) {

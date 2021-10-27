@@ -1,33 +1,20 @@
 import { program } from 'commander';
 import log from 'loglevel';
-import { mintNFT, updateMetadata } from './commands/mint-nft';
+import { mintNFT } from './commands/mint-nft';
 import { loadWalletKey } from './helpers/accounts';
 import { web3 } from '@project-serum/anchor';
-import { PublicKey } from '@solana/web3.js';
 
 program.version('0.0.1');
 log.setLevel('info');
 
 programCommand('mint')
-  .option('-u, --url <string>', 'metadata url')
+  .option('-m, --metadata <string>', 'metadata url')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   .action(async (directory, cmd) => {
-    const { keypair, env, url } = cmd.opts();
+    const { keypair, env, metadata } = cmd.opts();
     const solConnection = new web3.Connection(web3.clusterApiUrl(env));
     const walletKeyPair = loadWalletKey(keypair);
-    await mintNFT(solConnection, walletKeyPair, url);
-  });
-
-programCommand('update-metadata')
-  .option('-m, --mint <string>', 'base58 mint key')
-  .option('-u, --url <string>', 'metadata url')
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  .action(async (directory, cmd) => {
-    const { keypair, env, mint, url } = cmd.opts();
-    const mintKey = new PublicKey(mint);
-    const solConnection = new web3.Connection(web3.clusterApiUrl(env));
-    const walletKeyPair = loadWalletKey(keypair);
-    await updateMetadata(mintKey, solConnection, walletKeyPair, url);
+    await mintNFT(solConnection, walletKeyPair, metadata);
   });
 
 function programCommand(name: string) {
