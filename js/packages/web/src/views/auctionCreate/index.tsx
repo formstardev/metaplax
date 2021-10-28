@@ -135,7 +135,7 @@ export interface AuctionState {
 export const AuctionCreateView = () => {
   const connection = useConnection();
   const wallet = useWallet();
-  const { whitelistedCreatorsByCreator, storeIndexer } = useMeta();
+  const { whitelistedCreatorsByCreator } = useMeta();
   const { step_param }: { step_param: string } = useParams();
   const history = useHistory();
   const mint = useMint(QUOTE_MINT);
@@ -495,7 +495,6 @@ export const AuctionCreateView = () => {
       safetyDepositDrafts,
       participationSafetyDepositDraft,
       QUOTE_MINT.toBase58(),
-      storeIndexer,
     );
     setAuctionObj(_auctionObj);
   };
@@ -651,7 +650,7 @@ export const AuctionCreateView = () => {
 
   return (
     <>
-      <Row className="creator-base-page" style={{ paddingTop: 50 }}>
+      <Row style={{ paddingTop: 50 }}>
         {stepsVisible && (
           <Col span={24} md={4}>
             <Steps

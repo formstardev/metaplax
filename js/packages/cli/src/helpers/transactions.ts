@@ -102,7 +102,7 @@ export async function sendSignedTransaction({
       txid,
       timeout,
       connection,
-      'confirmed',
+      'recent',
       true,
     );
 
@@ -146,7 +146,7 @@ export async function sendSignedTransaction({
     done = true;
   }
 
-  log.debug('Latency (ms)', txid, getUnixTs() - startTime);
+  log.debug('Latency', txid, getUnixTs() - startTime);
   return { txid, slot };
 }
 

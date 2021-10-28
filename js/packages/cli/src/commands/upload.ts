@@ -10,7 +10,6 @@ import fs from 'fs';
 import BN from 'bn.js';
 import { loadCache, saveCache } from '../helpers/cache';
 import log from 'loglevel';
-import { awsUpload } from '../helpers/upload/aws';
 import { arweaveUpload } from '../helpers/upload/arweave';
 import { ipfsCreds, ipfsUpload } from '../helpers/upload/ipfs';
 import { chunks } from '../helpers/various';
@@ -23,9 +22,7 @@ export async function upload(
   totalNFTs: number,
   storage: string,
   retainAuthority: boolean,
-  mutable: boolean,
   ipfsCredentials: ipfsCreds,
-  awsS3Bucket: string,
 ): Promise<boolean> {
   let uploadSuccessful = true;
 
@@ -74,10 +71,9 @@ export async function upload(
     const imageName = path.basename(image);
     const index = imageName.replace(EXTENSION_PNG, '');
 
+    log.debug(`Processing file: ${i}`);
     if (i % 50 === 0) {
       log.info(`Processing file: ${i}`);
-    } else {
-      log.debug(`Processing file: ${i}`);
     }
 
     let link = cacheContent?.items?.[index]?.link;
@@ -100,7 +96,7 @@ export async function upload(
             maxNumberOfLines: new BN(totalNFTs),
             symbol: manifest.symbol,
             sellerFeeBasisPoints: manifest.seller_fee_basis_points,
-            isMutable: mutable,
+            isMutable: true,
             maxSupply: new BN(0),
             retainAuthority: retainAuthority,
             creators: manifest.properties.creators.map(creator => {
@@ -140,8 +136,6 @@ export async function upload(
             );
           } else if (storage === 'ipfs') {
             link = await ipfsUpload(ipfsCredentials, image, manifestBuffer);
-          } else if (storage === 'aws') {
-            link = await awsUpload(awsS3Bucket, image, manifestBuffer);
           }
 
           if (link) {

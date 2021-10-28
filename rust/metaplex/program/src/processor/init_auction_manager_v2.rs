@@ -17,9 +17,9 @@ use {
         program_option::COption,
         pubkey::Pubkey,
     },
-    metaplex_auction::processor::{AuctionData, AuctionState},
+    spl_auction::processor::{AuctionData, AuctionState},
     spl_token::state::Account,
-    metaplex_token_vault::state::{Vault, VaultState},
+    spl_token_vault::state::{Vault, VaultState},
 };
 
 pub fn assert_common_checks(
@@ -63,7 +63,7 @@ pub fn assert_common_checks(
         &store.auction_program,
         auction_info,
         &[
-            metaplex_auction::PREFIX.as_bytes(),
+            spl_auction::PREFIX.as_bytes(),
             &store.auction_program.as_ref(),
             &vault_info.key.as_ref(),
         ],
